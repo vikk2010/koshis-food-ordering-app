@@ -69,6 +69,20 @@ function RestaurantForm() {
     }
   }
 
+  const handleQr = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      // Large enough to scan reliably, small enough for the restaurant document (Firestore: 1 MB).
+      const dataUrl = await fileToResizedDataUrl(file, 720, 0.9)
+      if (dataUrl.length > 450_000) throw new Error('That image is too large — crop it to just the QR code and try again.')
+      patch({ upiQr: dataUrl })
+    } catch (err) {
+      setMsg({ text: err.message, error: true })
+    }
+  }
+
   // The "accepting orders" switch saves immediately — it's the admin's emergency stop.
   const toggleOrders = async (on) => {
     setForm((f) => ({ ...f, acceptingOrders: on }))
@@ -244,47 +258,81 @@ function RestaurantForm() {
       <div className="card">
         <h2>UPI payments</h2>
         <p className="muted small" style={{ marginTop: -8 }}>
-          Customers who choose UPI at checkout see a QR code for the exact order amount, paid straight to this UPI ID.
-          Leave empty to hide the UPI option.
+          Customers who choose UPI at checkout pay straight to this UPI ID. Leave the UPI ID empty to hide the UPI option.
         </p>
-        <div className="upi-settings">
-          <div className="settings-grid">
-            <label>
-              UPI ID
-              <input
-                value={form.upiId}
-                onChange={set('upiId', (v) => v.replace(/\s/g, ''))}
-                placeholder="koshis@okhdfcbank"
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <span className="hint">Find it in your GPay / PhonePe / Paytm for Business profile</span>
-            </label>
-            <label>
-              Payee name
-              <input value={form.upiName} onChange={set('upiName')} maxLength={50} placeholder={form.name || 'Restaurant name'} />
-              <span className="hint">Shown in the customer's UPI app · defaults to the restaurant name</span>
-            </label>
-          </div>
-          {UPI_ID_RE.test(form.upiId.trim()) && (
-            <div className="upi-preview">
+        <div className="settings-grid">
+          <label>
+            UPI ID
+            <input
+              value={form.upiId}
+              onChange={set('upiId', (v) => v.replace(/\s/g, ''))}
+              placeholder="koshis@okhdfcbank"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <span className="hint">Shown in GPay / PhonePe / Paytm under your profile</span>
+          </label>
+          <label>
+            Payee name
+            <input value={form.upiName} onChange={set('upiName')} maxLength={50} placeholder={form.name || 'Restaurant name'} />
+            <span className="hint">Shown to customers on the payment screen · defaults to the restaurant name</span>
+          </label>
+        </div>
+
+        <fieldset className="upi-type">
+          <legend className="field-label">Type of UPI ID</legend>
+          <label className={`option-tile ${!form.upiMerchant ? 'selected' : ''}`}>
+            <input type="radio" name="upiType" checked={!form.upiMerchant} onChange={() => patch({ upiMerchant: false })} />
+            <div className="option-body">
+              <strong>Personal UPI ID</strong>
+              <span className="muted small">
+                Your own GPay / PhonePe / Paytm ID. Customers scan your QR code (or use your UPI ID) and type the amount
+                themselves — UPI apps don't allow a pre-filled amount for personal IDs.
+              </span>
+            </div>
+          </label>
+          <label className={`option-tile ${form.upiMerchant ? 'selected' : ''}`}>
+            <input type="radio" name="upiType" checked={Boolean(form.upiMerchant)} onChange={() => patch({ upiMerchant: true })} />
+            <div className="option-body">
+              <strong>Business (merchant) UPI ID</strong>
+              <span className="muted small">
+                From Google Pay for Business, PhonePe Business, Paytm for Business or your bank. The app makes a QR code and
+                a one-tap "Pay" button with the exact order amount filled in.
+              </span>
+            </div>
+          </label>
+        </fieldset>
+
+        {form.upiMerchant ? (
+          UPI_ID_RE.test(form.upiId.trim()) && (
+            <div className="upi-preview inline">
               <QrCode value={upiPayLink({ upiId: form.upiId.trim(), name: form.upiName.trim() || form.name })} size={120} label="Preview of your UPI QR code" />
               <span className="hint">Test scan (no amount)</span>
             </div>
-          )}
-        </div>
-        <label className="checkbox upi-merchant">
-          <input type="checkbox" checked={Boolean(form.upiMerchant)} onChange={(e) => patch({ upiMerchant: e.target.checked })} />
-          <span>
-            This is a <strong>business (merchant) UPI ID</strong>
-            <span className="hint">
-              GPay, PhonePe and Paytm don't allow one-tap payment links to a personal UPI ID, so customers on a phone copy
-              your UPI ID and pay with "Pay UPI ID". If this is a business UPI ID (Google Pay for Business, PhonePe
-              Business, Paytm for Business or your bank's merchant account), tick this to also show a one-tap
-              "Pay with UPI app" button.
-            </span>
-          </span>
-        </label>
+          )
+        ) : (
+          <div className="upi-qr-upload">
+            <div className="upi-qr-upload-preview">
+              {form.upiQr ? <img src={form.upiQr} alt="Your UPI QR code" /> : <span className="muted small">No QR code yet</span>}
+            </div>
+            <div className="upi-qr-upload-info">
+              <strong>Your UPI QR code</strong>
+              <span className="hint">
+                In GPay, PhonePe or Paytm open your profile → "Your QR code" → download or screenshot it, then upload it
+                here. Customers see it on the payment screen with the amount they need to enter.
+              </span>
+              <div className="card-links">
+                <label className="btn small secondary file-btn">
+                  {form.upiQr ? 'Replace QR code' : 'Upload QR code'}
+                  <input type="file" accept="image/*" onChange={handleQr} />
+                </label>
+                {form.upiQr && (
+                  <button type="button" className="link-btn small" onClick={() => patch({ upiQr: '' })}>Remove</button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ----- Opening hours ----- */}

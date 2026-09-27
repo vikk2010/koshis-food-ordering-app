@@ -11,6 +11,30 @@ export function couponLabel(c) {
   return c.minOrder > 0 ? `${off} on orders above ₹${c.minOrder}` : off
 }
 
+/** Big headline for an offer card: "20% OFF" / "₹50 OFF". */
+export const couponHeadline = (c) => (c.type === 'percent' ? `${c.value}% OFF` : `₹${c.value} OFF`)
+
+/** Conditions under the headline: "Up to ₹100 · On orders above ₹300". */
+export function couponTerms(c) {
+  const parts = []
+  if (c.type === 'percent' && c.maxDiscount > 0) parts.push(`Up to ₹${c.maxDiscount}`)
+  parts.push(c.minOrder > 0 ? `On orders above ₹${c.minOrder}` : 'On any order')
+  return parts.join(' · ')
+}
+
+/** Colour themes for offer cards on the home page (chosen per coupon in "Charges & Coupons"). */
+export const OFFER_THEMES = [
+  { key: 'saffron', label: 'Saffron' },
+  { key: 'mint', label: 'Mint green' },
+  { key: 'berry', label: 'Berry' },
+  { key: 'indigo', label: 'Indigo' },
+  { key: 'turmeric', label: 'Turmeric' },
+  { key: 'charcoal', label: 'Charcoal' },
+]
+/** The coupon's theme, or one picked by its position so neighbours differ. */
+export const offerTheme = (c, index) =>
+  OFFER_THEMES.some((t) => t.key === c.theme) ? c.theme : OFFER_THEMES[Math.max(0, index) % OFFER_THEMES.length].key
+
 /** Returns { discount, error } for a coupon against the current item total. */
 export function evaluateCoupon(coupon, itemTotal) {
   if (!coupon) return { discount: 0, error: '' }

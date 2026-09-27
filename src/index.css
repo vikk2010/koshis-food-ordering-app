@@ -173,13 +173,53 @@ main.container { padding-block: 32px 64px; flex: 1; }
 .qty span { min-width: 24px; text-align: center; font-weight: 600; font-size: 0.875rem; }
 
 /* Offer banner */
-.offer-banner {
-  margin-top: 56px; background: var(--dark); color: #fff; border-radius: 24px; padding: 40px 48px;
-  display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; scroll-margin-top: 96px;
+/* ---------- Offers (one card per active coupon) ---------- */
+.offer-preview { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; max-width: 380px; }
+.theme-pick { display: inline-flex; align-items: center; gap: 8px; }
+.theme-pick select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); font: inherit; font-size: 0.85rem; }
+.theme-dot { width: 16px; height: 16px; border-radius: 999px; flex-shrink: 0; }
+.theme-dot.theme-saffron { background: #d9480f; } .theme-dot.theme-mint { background: #2b8a3e; } .theme-dot.theme-berry { background: #a61e4d; }
+.theme-dot.theme-indigo { background: #364fc7; } .theme-dot.theme-turmeric { background: #fcc419; } .theme-dot.theme-charcoal { background: #1f1a17; }
+
+.offers { margin: 48px 0 40px; scroll-margin-top: 96px; }
+.offers .section-head { margin-bottom: 20px; }
+.offer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.offer-grid.n1 { grid-template-columns: minmax(280px, 560px); }
+.offer-card {
+  --ink: #fff; --ink-soft: rgb(255 255 255 / 0.82); --chip: rgb(255 255 255 / 0.16); --chip-border: rgb(255 255 255 / 0.55);
+  position: relative; overflow: hidden; isolation: isolate; border-radius: 20px; padding: 24px;
+  min-height: 190px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px;
+  color: var(--ink); box-shadow: var(--shadow);
 }
-.offer-banner h2 { color: #fff; font-size: 2rem; line-height: 2.5rem; font-weight: 700; margin: 0 0 8px; }
-.offer-banner p { margin: 0; color: var(--border); }
-.offer-banner .code { font-weight: 700; color: #fff; }
+.offer-card::before, .offer-card::after { content: ''; position: absolute; z-index: -1; border-radius: 999px; background: rgb(255 255 255 / 0.1); }
+.offer-card::before { width: 180px; height: 180px; right: -50px; top: -60px; }
+.offer-card::after { width: 110px; height: 110px; right: 50px; bottom: -55px; background: rgb(255 255 255 / 0.07); }
+.offer-card-top { display: flex; flex-direction: column; gap: 6px; }
+.offer-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.offer-headline { margin: 0; color: var(--ink); font-family: var(--font-heading); font-size: 2.25rem; line-height: 2.5rem; font-weight: 700; }
+.offer-terms { margin: 0; color: var(--ink-soft); font-size: 0.95rem; }
+.offer-card-bottom { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.offer-code {
+  display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; cursor: pointer;
+  background: var(--chip); border: 1.5px dashed var(--chip-border); color: var(--ink); font: inherit;
+}
+.offer-code span:first-child { font-weight: 700; letter-spacing: 0.08em; }
+.offer-copy { font-size: 0.75rem; font-weight: 600; color: var(--ink-soft); }
+.offer-code:hover { background: rgb(255 255 255 / 0.26); }
+.offer-cta { color: var(--ink); font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+.offer-cta:hover { text-decoration: underline; }
+.offer-card.theme-saffron { background: linear-gradient(135deg, #f76707 0%, #d9480f 55%, #b93c0a 100%); }
+.offer-card.theme-mint { background: linear-gradient(135deg, #37b24d 0%, #2b8a3e 60%, #216e31 100%); }
+.offer-card.theme-berry { background: linear-gradient(135deg, #d6336c 0%, #a61e4d 60%, #862e9c 100%); }
+.offer-card.theme-indigo { background: linear-gradient(135deg, #4263eb 0%, #364fc7 55%, #1c3a8a 100%); }
+.offer-card.theme-charcoal { background: linear-gradient(135deg, #3a302a 0%, #1f1a17 100%); }
+.offer-card.theme-charcoal .offer-headline { color: #ffc078; }
+.offer-card.theme-turmeric {
+  background: linear-gradient(135deg, #ffe066 0%, #fcc419 55%, #f59f00 100%);
+  --ink: #3b2400; --ink-soft: rgb(59 36 0 / 0.78); --chip: rgb(255 255 255 / 0.45); --chip-border: rgb(59 36 0 / 0.45);
+}
+.offer-card.theme-turmeric::before, .offer-card.theme-turmeric::after { background: rgb(255 255 255 / 0.28); }
+.offer-card.theme-turmeric .offer-code:hover { background: rgb(255 255 255 / 0.65); }
 #menu { scroll-margin-top: 96px; }
 
 /* ---------- Footer ---------- */
@@ -192,6 +232,9 @@ main.container { padding-block: 32px 64px; flex: 1; }
 .footer-col { display: flex; flex-direction: column; gap: 10px; min-width: 140px; }
 .footer-col h4 { color: #fff; font-size: 0.875rem; margin: 0 0 2px; }
 .footer-col a:hover { color: #fff; }
+.footer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 12px 24px; flex-wrap: wrap; padding-top: 20px; border-top: 1px solid rgb(255 255 255 / 0.12); }
+.footer-admin { font-size: 0.8rem; font-weight: 600; color: var(--border); text-decoration: none; padding: 7px 14px; border: 1px solid rgb(255 255 255 / 0.25); border-radius: 999px; white-space: nowrap; }
+.footer-admin:hover { color: #fff; border-color: #fff; }
 .footer-copy { font-size: 0.75rem; color: var(--muted); margin: 0; }
 
 /* ---------- Cards / legacy cart ---------- */
@@ -490,6 +533,20 @@ a.tab.active { color: #fff; }
 .upi-amount { font-family: var(--font-heading); font-size: 1.25rem; }
 .upi-qr-more summary { cursor: pointer; color: var(--primary); font-weight: 600; font-size: 0.875rem; }
 .upi-qr-more .upi-pay-qr { display: inline-block; margin-top: 12px; }
+.upi-type { border: 0; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.upi-type legend { margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; }
+.upi-type .option-tile { align-items: flex-start; }
+.upi-preview.inline { flex-direction: row; gap: 12px; align-self: flex-start; display: inline-flex; margin-top: 16px; }
+.upi-qr-upload { display: flex; gap: 16px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+.upi-qr-upload-preview { width: 140px; height: 140px; border: 1px dashed var(--border); border-radius: var(--radius-sm); display: grid; place-items: center; background: #fff; overflow: hidden; flex-shrink: 0; }
+.upi-qr-upload-preview img { width: 100%; height: 100%; object-fit: contain; }
+.upi-qr-upload-info { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 220px; }
+.upi-pay-qr.own img { display: block; max-width: 100%; height: auto; border-radius: 8px; }
+.upi-amount-box { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--primary-soft); align-self: flex-start; }
+.upi-amount-box .upi-amount { color: var(--text); font-size: 1.5rem; }
+.upi-qr-more p { margin: 10px 0; }
+.upi-qr-more .btn { margin-top: 10px; display: flex; width: fit-content; }
+.upi-qr-upload-info .card-links { justify-content: flex-start; gap: 16px; align-items: center; }
 .upi-merchant { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; }
 .upi-merchant input { margin-top: 3px; }
 .upi-merchant .hint { display: block; margin-top: 2px; }
@@ -516,11 +573,14 @@ a.tab.active { color: #fff; }
   .hero { grid-template-columns: 1fr; padding-top: 8px; }
   .hero-art { aspect-ratio: 16 / 9; }
   .nav-links { display: none; }
-  .offer-banner { padding: 28px; }
-  .offer-banner h2 { font-size: 1.5rem; line-height: 2rem; }
+  .offer-headline { font-size: 1.9rem; line-height: 2.2rem; }
 }
 @media (max-width: 560px) {
   .container { padding: 0 16px; }
+  .offers { margin: 28px 0 28px; }
+  .offer-grid:not(.n1) { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; margin-inline: -16px; padding: 4px 16px 12px; scroll-padding-inline: 16px; scrollbar-width: none; }
+  .offer-grid:not(.n1)::-webkit-scrollbar { display: none; }
+  .offer-grid:not(.n1) .offer-card { flex: 0 0 82%; scroll-snap-align: start; min-height: 170px; }
   main.container { padding-block: 20px 48px; }
   h1 { font-size: 1.5rem; line-height: 2rem; }
   .hero h1 { font-size: 2rem; line-height: 2.5rem; }
