@@ -4,6 +4,11 @@ import { useDishes } from '../../context/DishContext.jsx'
 
 // "Menu Sections" admin screen: add, rename, reorder and delete the sections dishes are grouped in.
 export default function AdminSections() {
+  const { ready } = useDishes()
+  return ready ? <SectionsEditor /> : <p className="empty">Loading…</p>
+}
+
+function SectionsEditor() {
   const { sections, dishes, addSection, renameSection, moveSection, deleteSection } = useDishes()
   const [name, setName] = useState('')
   const [error, setError] = useState('')
@@ -12,6 +17,7 @@ export default function AdminSections() {
 
   const countIn = (id) => dishes.filter((d) => d.sectionId === id).length
   const unassigned = dishes.filter((d) => !d.sectionId).length
+  const fail = (err) => setError(err.message)
   const taken = (n, exceptId) => sections.some((s) => s.id !== exceptId && s.name.toLowerCase() === n.toLowerCase())
 
   const handleAdd = (e) => {
@@ -19,18 +25,18 @@ export default function AdminSections() {
     const n = name.trim()
     if (!n) return setError('Enter a section name')
     if (taken(n)) return setError('A section with this name already exists')
-    addSection(n)
     setName('')
     setError('')
+    addSection(n).catch(fail)
   }
 
   const saveRename = () => {
     const n = editing.name.trim()
     if (!n) return setError('Section name cannot be empty')
     if (taken(n, editing.id)) return setError('A section with this name already exists')
-    renameSection(editing.id, n)
     setEditing(null)
     setError('')
+    renameSection(editing.id, n).catch(fail)
   }
 
   return (
@@ -65,8 +71,8 @@ export default function AdminSections() {
             {sections.map((s, i) => (
               <tr key={s.id}>
                 <td className="row-actions">
-                  <button type="button" className="icon-btn" onClick={() => moveSection(s.id, -1)} disabled={i === 0} aria-label={`Move ${s.name} up`}>↑</button>
-                  <button type="button" className="icon-btn" onClick={() => moveSection(s.id, 1)} disabled={i === sections.length - 1} aria-label={`Move ${s.name} down`}>↓</button>
+                  <button type="button" className="icon-btn" onClick={() => moveSection(s.id, -1).catch(fail)} disabled={i === 0} aria-label={`Move ${s.name} up`}>↑</button>
+                  <button type="button" className="icon-btn" onClick={() => moveSection(s.id, 1).catch(fail)} disabled={i === sections.length - 1} aria-label={`Move ${s.name} down`}>↓</button>
                 </td>
                 <td>
                   {editing?.id === s.id ? (
@@ -98,7 +104,7 @@ export default function AdminSections() {
                       <span className="muted small" style={{ alignSelf: 'center' }}>
                         {countIn(s.id) ? `${countIn(s.id)} dish(es) will have no section.` : 'Delete?'}
                       </span>
-                      <button className="btn small danger" onClick={() => { deleteSection(s.id); setConfirmId(null) }}>Confirm</button>
+                      <button className="btn small danger" onClick={() => { deleteSection(s.id).catch(fail); setConfirmId(null) }}>Confirm</button>
                       <button className="btn small secondary" onClick={() => setConfirmId(null)}>Cancel</button>
                     </>
                   ) : (

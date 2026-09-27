@@ -8,14 +8,23 @@ const EMPTY = { name: '', category: 'veg', sectionId: '', tags: [], price: '', d
 
 export default function DishForm() {
   const { id } = useParams()
-  const { getDish, addDish, updateDish, sections } = useDishes()
+  const { getDish, addDish, updateDish, sections, ready } = useDishes()
   const navigate = useNavigate()
   const existing = id ? getDish(id) : null
 
   const [form, setForm] = useState(existing ?? EMPTY)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [loadedId, setLoadedId] = useState(existing ? id : null)
+
+  // The menu may still be loading when this page is opened directly: fill the form once it arrives.
+  if (existing && loadedId !== id) {
+    setLoadedId(id)
+    setForm(existing)
+  }
 
   if (id && !existing) {
+    if (!ready) return <p className="empty">Loading…</p>
     return (
       <section className="center-card">
         <h1>Dish not found</h1>
@@ -42,16 +51,22 @@ export default function DishForm() {
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const price = Number(form.price)
     if (!form.name.trim()) return setError('Name is required')
     if (!(price > 0)) return setError('Price must be greater than 0')
 
     const dish = { ...form, name: form.name.trim(), description: form.description.trim(), price }
-    if (existing) updateDish(existing.id, dish)
-    else addDish(dish)
-    navigate('/admin')
+    setSaving(true)
+    try {
+      if (existing) await updateDish(existing.id, dish)
+      else await addDish(dish)
+      navigate('/admin')
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
   }
 
   return (
@@ -144,7 +159,7 @@ export default function DishForm() {
 
       <div className="actions">
         <Link className="btn secondary" to="/admin">Cancel</Link>
-        <button className="btn" type="submit">{existing ? 'Save Changes' : 'Add Dish'}</button>
+        <button className="btn" type="submit" disabled={saving}>{saving ? 'Saving…' : existing ? 'Save Changes' : 'Add Dish'}</button>
       </div>
     </form>
   )

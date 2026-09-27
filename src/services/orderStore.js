@@ -51,6 +51,30 @@ export async function updateOrder(id, updates) {
 }
 
 /**
+ * Customer: calls onChange(orders) with every order this customer has placed (any device),
+ * now and whenever one changes. Firebase only. Returns an unsubscribe function.
+ */
+export function subscribeToCustomerOrders(uid, onChange) {
+  if (!isFirebaseConfigured) return () => {}
+  let unsubscribe = () => {}
+  let cancelled = false
+  getFirestoreDb()
+    .then(({ db, fs }) => {
+      if (cancelled) return
+      unsubscribe = fs.onSnapshot(
+        fs.query(fs.collection(db, 'orders'), fs.where('customerUid', '==', uid)),
+        (snap) => onChange(snap.docs.map((d) => d.data())),
+        (err) => console.error('Could not load your orders:', err.message),
+      )
+    })
+    .catch((err) => console.error(err))
+  return () => {
+    cancelled = true
+    unsubscribe()
+  }
+}
+
+/**
  * Customer: calls onChange(order) with the latest copy of one order (status set by the kitchen)
  * now and whenever it changes. Returns an unsubscribe function.
  */

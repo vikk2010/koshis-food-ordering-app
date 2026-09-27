@@ -1,16 +1,53 @@
+import { useEffect, useState } from 'react'
 import { Navigate, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { AdminOrdersProvider, useAdminOrders } from '../context/AdminOrdersContext.jsx'
+import { initializeCatalog } from '../services/catalogStore.js'
 
 // Guards admin routes, keeps the live order feed running and renders the admin section menu.
 export default function ProtectedRoute() {
   const { isAdmin, ready } = useAuth()
   if (!ready) return <p className="empty">Loading…</p>
   if (!isAdmin) return <Navigate to="/admin/login" replace />
+  return <AdminArea />
+}
+
+function AdminArea() {
+  // First admin visit after moving to Firebase: upload the menu and restaurant details once.
+  const [setup, setSetup] = useState({ done: false, uploaded: false, error: '' })
+  useEffect(() => {
+    let active = true
+    initializeCatalog()
+      .then((uploaded) => active && setSetup({ done: true, uploaded, error: '' }))
+      .catch((err) => {
+        console.error(err)
+        if (active) {
+          setSetup({
+            done: true,
+            uploaded: false,
+            error: err.code === 'permission-denied'
+              ? 'Firebase refused to save the menu. Publish the latest firestore.rules (see README), then reload.'
+              : 'Could not reach Firebase to set up the menu. Check your connection and reload.',
+          })
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  if (!setup.done) return <p className="empty">Setting up the admin panel…</p>
 
   return (
     <AdminOrdersProvider>
       <AdminNav />
+      {setup.error && <p className="error admin-banner">{setup.error}</p>}
+      {setup.uploaded && (
+        <p className="admin-banner saved">
+          Your menu, restaurant details, charges and coupons are now stored in Firebase — every customer sees the
+          same data. Please check Restaurant Details once.
+        </p>
+      )}
       <Outlet />
     </AdminOrdersProvider>
   )

@@ -11,7 +11,8 @@ const FILTERS = [
 ]
 
 export default function AdminDashboard() {
-  const { dishes, updateDish, deleteDish, storageError, sectionName } = useDishes()
+  const { dishes, updateDish, deleteDish, storageError, sectionName, ready } = useDishes()
+  const ignore = () => {} // failures are shown via storageError
   const [filter, setFilter] = useState('all')
   const [confirmId, setConfirmId] = useState(null)
 
@@ -62,7 +63,7 @@ export default function AdminDashboard() {
                   <input
                     type="checkbox"
                     checked={dish.available}
-                    onChange={(e) => updateDish(dish.id, { available: e.target.checked })}
+                    onChange={(e) => updateDish(dish.id, { available: e.target.checked }).catch(ignore)}
                     aria-label={`Toggle availability of ${dish.name}`}
                   />
                 </td>
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
                   <Link className="btn small secondary" to={`/admin/dishes/${dish.id}/edit`}>Edit</Link>
                   {confirmId === dish.id ? (
                     <>
-                      <button className="btn small danger" onClick={() => deleteDish(dish.id)}>Confirm</button>
+                      <button className="btn small danger" onClick={() => deleteDish(dish.id).catch(ignore)}>Confirm</button>
                       <button className="btn small secondary" onClick={() => setConfirmId(null)}>Cancel</button>
                     </>
                   ) : (
@@ -80,7 +81,7 @@ export default function AdminDashboard() {
               </tr>
             ))}
             {visible.length === 0 && (
-              <tr><td colSpan="7" className="empty">No dishes yet.</td></tr>
+              <tr><td colSpan="7" className="empty">{ready ? 'No dishes yet.' : 'Loading…'}</td></tr>
             )}
           </tbody>
         </table>

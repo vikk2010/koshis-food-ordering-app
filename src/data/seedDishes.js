@@ -1,4 +1,5 @@
-// Initial menu loaded on first run. Admin edits are persisted to localStorage.
+// Starter menu: used in demo mode, and uploaded to Firestore the first time an admin signs in
+// (unless the admin's browser already has a menu from the earlier localStorage version).
 export const seedDishes = [
   { id: 'd1', sectionId: 's-mains', tags: ['bestseller'], name: 'Paneer Butter Masala', category: 'veg', price: 240, description: 'Cottage cheese cubes simmered in a rich, creamy tomato-butter gravy.', image: '', available: true },
   { id: 'd2', sectionId: 's-biryani', tags: [], name: 'Veg Biryani', category: 'veg', price: 200, description: 'Fragrant basmati rice layered with seasonal vegetables and whole spices.', image: '', available: true },
