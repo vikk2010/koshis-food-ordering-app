@@ -16,7 +16,7 @@ const TABS = [
 
 // "01 · Home / Menu" screen from Figma.
 export default function Menu() {
-  const { dishes, sections } = useDishes()
+  const { dishes, sections, ready: menuReady } = useDishes()
   const { restaurant, status } = useRestaurant()
   const { settings, coupons } = useSettings()
   const { hash } = useLocation()
@@ -44,7 +44,7 @@ export default function Menu() {
 
   return (
     <section>
-      {!status.open && (
+      {!status.open && status.reason !== 'loading' && (
         <div className="closed-banner" role="status">
           <Icon name="clock" size={18} /> {status.message}
         </div>
@@ -120,7 +120,9 @@ export default function Menu() {
         </div>
       )}
 
-      {visible.length === 0 ? (
+      {!menuReady && dishes.length === 0 ? (
+        <p className="empty">Loading today's menu…</p>
+      ) : visible.length === 0 ? (
         <p className="empty">No dishes found{query ? ` for “${search.trim()}”` : ' in this section'}.</p>
       ) : (
         <div className="grid">

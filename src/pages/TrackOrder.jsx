@@ -29,7 +29,7 @@ const HEADLINES = {
 // "03 · Order Tracking" screen from Figma. Status comes live from the kitchen (admin panel).
 export default function TrackOrder() {
   const { id } = useParams()
-  const { getOrder } = useOrders()
+  const { getOrder, loading } = useOrders()
   const { restaurant } = useRestaurant()
   const saved = getOrder(id)
   const [live, setLive] = useState(null)
@@ -47,10 +47,11 @@ export default function TrackOrder() {
   }, [id, Boolean(saved)]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!saved) {
+    if (loading) return <p className="empty">Loading your order…</p>
     return (
       <section className="center-card">
         <h1>Order not found</h1>
-        <p className="muted">We couldn't find this order on this device.</p>
+        <p className="muted">We couldn't find this order in your account.</p>
         <Link className="btn" to="/">Back to menu</Link>
       </section>
     )

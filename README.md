@@ -69,24 +69,44 @@ https://www.figma.com/design/LSg0O5c7eDAKWJ2DDrUYpk/Koshis
 - Admin screens (page **Koshis – Admin**): 04 Restaurant Details → `pages/admin/AdminRestaurant.jsx`,
   05 Menu Sections → `pages/admin/AdminSections.jsx`, 06 Add / Edit Dish → `pages/admin/DishForm.jsx`.
 
-## Firebase (login + orders)
+## Firebase (all data)
 
 The Firebase project is **koshis-cloud-kitchen** (Firestore in `asia-south1` Mumbai, free Spark
 plan). Its web config is in `src/config/firebaseConfig.js` (safe to commit — these values are
 public; security comes from `firestore.rules`). Set `VITE_DEMO_MODE=true` in a `.env` file to run
 without Firebase.
 
+Everything shared lives in Firestore, so every customer on every device sees the same data and
+admin changes show up live:
+
+| Firestore path | What | Who can change it |
+| --- | --- | --- |
+| `config/restaurant` | name, logo, contact, address, hours, UPI ID, "Accepting orders" | admins |
+| `config/settings` | delivery time and charges | admins |
+| `config/coupons` | coupons | admins |
+| `config/sections` | menu sections, in order | admins |
+| `dishes/{id}` | one document per dish (image stored inside, max ~1 MB) | admins |
+| `orders/{id}` | orders and their status | customer creates, admins update |
+| `customers/{uid}` | a customer's saved addresses | that customer |
+| `admins/{uid}` | admin allowlist | only in the Firebase console |
+
+Only the cart, the login session and admin notification preferences stay in the browser.
+
+- **First admin sign-in**: the admin panel uploads the menu, restaurant details, charges and
+  coupons to Firestore once — the ones saved in that browser by the older version of the app, or
+  the defaults. Check Restaurant Details afterwards.
+- **Security rules**: after changing `firestore.rules`, paste it into **Firestore Database → Rules**
+  and click **Publish**. The app needs the current rules to read the menu.
 - **Customer login**: "Continue with Google", then name + mobile number for delivery. Free and
   unlimited. The mobile number is not OTP-verified.
 - **Admin login** (`/admin/login`): "Sign in with Google". Only Google accounts whose UID has a
   document in the Firestore **admins** collection get in. The first time, the login page shows
   your UID — in the Firebase console open **Firestore → Data → Start collection**, name it
   `admins`, use the UID as the document ID and add any field (e.g. `name: Vikash`).
-- **Orders** are saved to the Firestore `orders` collection and appear live in the admin panel on
-  any device. Access is controlled by `firestore.rules` (already published; paste it again under
-  **Firestore → Rules** if you change it).
-- **Authorized domains**: `localhost` works out of the box. When you host the site, add its domain
-  under **Authentication → Settings → Authorized domains**.
+- **Authorized domains**: `localhost` works out of the box. Add your production domain under
+  **Authentication → Settings → Authorized domains**, or Google sign-in fails there.
+- **Hosting**: it's a single-page app. `public/_redirects` (Netlify / Cloudflare Pages) and
+  `vercel.json` (Vercel) send every URL to `index.html` so links like `/orders/…` survive a refresh.
 - **Free limits** (Spark): 50K document reads / 20K writes per day, 1 GiB stored.
 
 In demo mode orders stay in the browser's localStorage, so the admin panel only sees
@@ -128,16 +148,12 @@ src/
   pages/       Menu, Cart, TrackOrder, Login
   pages/admin/ AdminLogin, AdminOrders, AdminOrderDetail, AdminDashboard, AdminSettings, AdminSections, AdminRestaurant, DishForm
   data/        seedDishes.js (initial menu), defaultSettings.js, defaultRestaurant.js (profile, sections, labels)
-  services/    firebase.js (shared setup), customerAuth.js (Google login), otp.js (phone OTP), orderStore.js (orders → kitchen)
+  services/    firebase.js (shared setup), catalogStore.js (menu, details, charges → Firestore), orderStore.js (orders),
+               customerStore.js (saved addresses), customerAuth.js (Google login), otp.js (phone OTP)
   utils/       storage.js, hours.js (open / closed), notify.js (desktop alerts), orders.js, image.js, bill.js, address.js, delivery.js (slots, payment, progress)
 ```
 
 ## Notes before production
 
-UPI / card payment is only recorded on the order — connect a payment gateway (for example
-Razorpay) before taking real payments.
-
-Data is stored in the browser's `localStorage`, so each browser has its own menu, and the
-admin password ships in the client bundle. For a real deployment, replace `DishContext`
-and `AuthContext` with calls to a backend API (for example Node/Express, Firebase or
-Supabase) that stores dishes, images and orders and handles admin authentication.
+UPI payments are made by QR code straight to the restaurant and confirmed by the admin by hand.
+To confirm payments automatically, connect a payment gateway (for example Razorpay or Cashfree).

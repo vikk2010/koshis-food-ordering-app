@@ -1,18 +1,34 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { load, save } from '../utils/storage.js'
 import { useUser } from './UserContext.jsx'
-import { submitOrder } from '../services/orderStore.js'
+import { submitOrder, subscribeToCustomerOrders } from '../services/orderStore.js'
 
 const ORDERS_KEY = 'foodapp.orders' // { [phone]: Order[] } (newest last)
 const OrderContext = createContext(null)
 
-// Placed orders, kept in localStorage per customer so the tracking page survives a reload.
+// The customer's orders: loaded from Firestore (so they appear on any device) and also kept in
+// localStorage as a fallback.
 // Each order is also sent to the kitchen (services/orderStore.js) so it shows up in the admin panel.
 export function OrderProvider({ children }) {
-  const { user } = useUser()
+  const { user, sessionUid } = useUser()
   const [orderBook, setOrderBook] = useState(() => load(ORDERS_KEY, {}))
+  const [remote, setRemote] = useState(null) // orders from Firestore (all devices)
 
-  const orders = (user && orderBook[user.phone]) || []
+  // With Firebase, also load every order this customer placed — from any device.
+  const uid = user?.uid && sessionUid === user.uid ? user.uid : null
+  useEffect(() => {
+    setRemote(null)
+    if (!uid) return undefined
+    return subscribeToCustomerOrders(uid, setRemote)
+  }, [uid])
+
+  // Still fetching this customer's orders (session check, then the first Firestore read).
+  const loading = Boolean(user?.uid) && (sessionUid === undefined || (Boolean(uid) && remote === null))
+
+  const localOrders = (user && orderBook[user.phone]) || []
+  const byId = new Map(localOrders.map((o) => [o.id, o]))
+  for (const o of remote || []) byId.set(o.id, { ...byId.get(o.id), ...o })
+  const orders = [...byId.values()].sort((a, b) => a.placedAt - b.placedAt)
 
   /**
    * Sends an order to the kitchen, saves it for the logged-in user and returns it (with id and number).
@@ -36,7 +52,7 @@ export function OrderProvider({ children }) {
       customerName: order.address?.name || user.name || '',
     }
     await submitOrder(saved)
-    const next = { ...orderBook, [user.phone]: [...orders, saved] }
+    const next = { ...orderBook, [user.phone]: [...localOrders, saved] }
     setOrderBook(next)
     save(ORDERS_KEY, next)
     return saved
@@ -46,7 +62,7 @@ export function OrderProvider({ children }) {
   const lastOrder = orders.at(-1) ?? null
 
   return (
-    <OrderContext.Provider value={{ orders, addOrder, getOrder, lastOrder }}>{children}</OrderContext.Provider>
+    <OrderContext.Provider value={{ orders, addOrder, getOrder, lastOrder, loading }}>{children}</OrderContext.Provider>
   )
 }
 

@@ -14,6 +14,12 @@ const FIELDS = [
 const EMPTY_COUPON = { code: '', type: 'flat', value: '', minOrder: '', maxDiscount: '' }
 
 export default function AdminSettings() {
+  const { ready } = useSettings()
+  // Wait for the saved values so the form never starts from (and saves) the defaults.
+  return ready ? <SettingsForm /> : <p className="empty">Loading…</p>
+}
+
+function SettingsForm() {
   const { settings, updateSettings, coupons, addCoupon, updateCoupon, deleteCoupon } = useSettings()
 
   const [form, setForm] = useState(() => Object.fromEntries(FIELDS.map((f) => [f.key, String(settings[f.key])])))
@@ -22,7 +28,10 @@ export default function AdminSettings() {
   const [couponError, setCouponError] = useState('')
   const [confirmId, setConfirmId] = useState(null)
 
-  const saveSettings = (e) => {
+  const [saving, setSaving] = useState(false)
+  const fail = (err) => setCouponError(err.message)
+
+  const saveSettings = async (e) => {
     e.preventDefault()
     const next = {}
     for (const f of FIELDS) {
@@ -33,13 +42,20 @@ export default function AdminSettings() {
       }
       next[f.key] = n
     }
-    updateSettings(next)
-    setSettingsMsg({ text: 'Saved ✓', error: false })
+    setSaving(true)
+    try {
+      await updateSettings(next)
+      setSettingsMsg({ text: 'Saved ✓', error: false })
+    } catch (err) {
+      setSettingsMsg({ text: err.message, error: true })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const setC = (field) => (e) => setCoupon((c) => ({ ...c, [field]: e.target.value }))
 
-  const saveCoupon = (e) => {
+  const saveCoupon = async (e) => {
     e.preventDefault()
     const code = coupon.code.trim().toUpperCase()
     const value = Number(coupon.value)
@@ -53,9 +69,13 @@ export default function AdminSettings() {
     }
     if (minOrder < 0 || maxDiscount < 0) return setCouponError('Amounts cannot be negative')
 
-    addCoupon({ code, type: coupon.type, value, minOrder, maxDiscount, active: true })
-    setCoupon(EMPTY_COUPON)
-    setCouponError('')
+    try {
+      await addCoupon({ code, type: coupon.type, value, minOrder, maxDiscount, active: true })
+      setCoupon(EMPTY_COUPON)
+      setCouponError('')
+    } catch (err) {
+      fail(err)
+    }
   }
 
   return (
@@ -89,7 +109,7 @@ export default function AdminSettings() {
         <p className="muted small">GST is calculated on item total − coupon discount + packaging charges.</p>
         <div className="actions">
           {settingsMsg.text && <span className={settingsMsg.error ? 'error' : 'saved'}>{settingsMsg.text}</span>}
-          <button className="btn" type="submit">Save Charges</button>
+          <button className="btn" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save Charges'}</button>
         </div>
       </form>
 
@@ -139,14 +159,14 @@ export default function AdminSettings() {
                     <input
                       type="checkbox"
                       checked={c.active}
-                      onChange={(e) => updateCoupon(c.id, { active: e.target.checked })}
+                      onChange={(e) => updateCoupon(c.id, { active: e.target.checked }).catch(fail)}
                       aria-label={`Toggle ${c.code}`}
                     />
                   </td>
                   <td className="row-actions">
                     {confirmId === c.id ? (
                       <>
-                        <button className="btn small danger" onClick={() => deleteCoupon(c.id)}>Confirm</button>
+                        <button className="btn small danger" onClick={() => deleteCoupon(c.id).catch(fail)}>Confirm</button>
                         <button className="btn small secondary" onClick={() => setConfirmId(null)}>Cancel</button>
                       </>
                     ) : (

@@ -38,7 +38,7 @@ export default function Cart() {
   const [slot, setSlot] = useState(null)
   // UPI is only offered once the admin has added the restaurant's UPI ID.
   const paymentMethods = PAYMENT_METHODS.filter((m) => m.key !== 'upi' || restaurant.upiId)
-  const [paymentChoice, setPayment] = useState(() => paymentMethods[0].key)
+  const [paymentChoice, setPayment] = useState(null) // null = first available (UPI when set up)
   const payment = paymentMethods.some((m) => m.key === paymentChoice) ? paymentChoice : paymentMethods[0].key
   const [error, setError] = useState('')
   const [placing, setPlacing] = useState(false)
@@ -63,7 +63,9 @@ export default function Cart() {
   const scheduledFor = schedule ? (slot ?? slots[0]) : null
   // Paused = no orders at all. Outside hours = only a scheduled slot inside opening hours works.
   const closedReason =
-    status.reason === 'paused'
+    status.reason === 'loading'
+      ? 'Loading restaurant details…'
+      : status.reason === 'paused'
       ? status.message
       : scheduledFor
         ? withinHours(restaurant.hours, new Date(scheduledFor)) ? '' : 'The kitchen is closed at that time. Please pick another slot.'

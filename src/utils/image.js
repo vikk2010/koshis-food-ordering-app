@@ -1,5 +1,5 @@
 // Reads an image File and returns a downscaled JPEG data URL,
-// keeping stored images small enough for localStorage.
+// keeping images small enough to store inside a Firestore document (1 MB limit).
 export function fileToResizedDataUrl(file, maxSize = 800, quality = 0.8) {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {

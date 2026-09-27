@@ -1,12 +1,28 @@
 rules_version = '2';
 
-// Orders: signed-in customers (Google or phone login) can create orders under their own account
-// and read them back; only admins (UID listed in the "admins" collection) can read every order.
+// Publish this file in the Firebase console: Firestore Database → Rules → paste → Publish.
+//
+// - config/*, dishes/*: the menu, restaurant details, charges and coupons. Everyone can read them
+//   (the storefront needs them); only admins can change them.
+// - orders/*: signed-in customers create orders under their own account and read them back;
+//   only admins read every order and change its status.
+// - customers/{uid}: a customer's saved addresses; only that customer can read or write them.
+// - admins/{uid}: the admin allowlist, added by hand in the console (document ID = admin's UID).
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function isAdmin() {
       return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /dishes/{dishId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /orders/{orderId} {
@@ -21,7 +37,10 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Admin allowlist: add documents by hand in the Firebase console (document ID = admin's UID).
+    match /customers/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
     match /admins/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;

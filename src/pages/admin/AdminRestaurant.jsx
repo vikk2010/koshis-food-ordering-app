@@ -31,9 +31,16 @@ function validate(f) {
 
 // "Restaurant Details" admin screen: profile, contact, address, licences and opening hours.
 export default function AdminRestaurant() {
+  const { ready } = useRestaurant()
+  // Wait for the saved details so the form never starts from (and saves) the defaults.
+  return ready ? <RestaurantForm /> : <p className="empty">Loading restaurant details…</p>
+}
+
+function RestaurantForm() {
   const { restaurant, updateRestaurant, status } = useRestaurant()
   const [form, setForm] = useState(restaurant)
   const [msg, setMsg] = useState({ text: '', error: false })
+  const [saving, setSaving] = useState(false)
 
   const dirty = JSON.stringify(form) !== JSON.stringify(restaurant)
 
@@ -63,12 +70,17 @@ export default function AdminRestaurant() {
   }
 
   // The "accepting orders" switch saves immediately — it's the admin's emergency stop.
-  const toggleOrders = (on) => {
+  const toggleOrders = async (on) => {
     setForm((f) => ({ ...f, acceptingOrders: on }))
-    updateRestaurant({ ...restaurant, acceptingOrders: on })
+    try {
+      await updateRestaurant({ ...restaurant, acceptingOrders: on })
+    } catch (err) {
+      setForm((f) => ({ ...f, acceptingOrders: !on }))
+      setMsg({ text: err.message, error: true })
+    }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     const clean = {
       ...form,
@@ -84,8 +96,15 @@ export default function AdminRestaurant() {
     const problem = validate(clean)
     if (problem) return setMsg({ text: problem, error: true })
     setForm(clean)
-    if (updateRestaurant(clean)) setMsg({ text: 'Saved ✓', error: false })
-    else setMsg({ text: 'Storage is full — try a smaller logo.', error: true })
+    setSaving(true)
+    try {
+      await updateRestaurant(clean)
+      setMsg({ text: 'Saved ✓ Customers see the changes right away.', error: false })
+    } catch (err) {
+      setMsg({ text: err.message, error: true })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -296,7 +315,7 @@ export default function AdminRestaurant() {
         <button type="button" className="btn secondary" disabled={!dirty} onClick={() => { setForm(restaurant); setMsg({ text: '', error: false }) }}>
           Discard
         </button>
-        <button className="btn" type="submit" disabled={!dirty}>Save details</button>
+        <button className="btn" type="submit" disabled={!dirty || saving}>{saving ? 'Saving…' : 'Save details'}</button>
       </div>
     </form>
   )
