@@ -20,8 +20,18 @@ npm run build    # production build in dist/
 - **Order tracking** (`/orders/:id`, login required): opened after placing an order and from
   "Track order" in the header. Shows the ETA, progress steps and order details. Progress is
   simulated from the clock (`src/utils/delivery.js`) until a backend sends real status updates.
-- **Login** (`/login`): mobile number + OTP. Guests can add dishes freely; they are asked to log in when they tap Place Order.
-- **Admin panel** (open `/admin` directly - not linked in the header; demo password `admin123`):
+- **Login** (`/login`): Continue with Google + mobile number (demo mode: mobile number + OTP). Guests can add dishes freely; they are asked to log in when they tap Place Order.
+- **Admin panel** (open `/admin` directly - not linked in the header; Sign in with Google, or the
+  demo password `admin123` when Firebase isn't configured):
+  - **Orders** (`/admin/orders`, opens after login): every order with order number, date and
+    time, customer name and phone, items, delivery (now / scheduled), payment and total. Filter by
+    Today / Yesterday / Last 7 days / All and search by order #, phone or name. New orders are
+    highlighted, counted in the tab title and on the Orders tab. Click an order for full details
+    (address, note, bill, Call / WhatsApp buttons) and **Print ticket** for the kitchen.
+  - **Desktop notifications**: click **Enable notifications** on the Orders page once. Every new
+    order then shows a desktop notification with a chime (sound can be switched off), plus an
+    in-page toast. Keep the admin panel open in a browser tab — it can be in the background or
+    minimised. Clicking the notification opens that order.
   - Add, edit and delete dishes
   - Set name, category (veg / non-veg), price and description
   - Upload an image (resized in the browser) or paste an image URL
@@ -53,12 +63,38 @@ https://www.figma.com/design/LSg0O5c7eDAKWJ2DDrUYpk/Koshis
 - Admin screens (page **Koshis – Admin**): 04 Restaurant Details → `pages/admin/AdminRestaurant.jsx`,
   05 Menu Sections → `pages/admin/AdminSections.jsx`, 06 Add / Edit Dish → `pages/admin/DishForm.jsx`.
 
-## Phone OTP login
+## Firebase (login + orders)
 
-Without configuration the app runs in **demo mode**: no SMS is sent and the OTP is shown
-on the verify screen.
+The Firebase project is **koshis-cloud-kitchen** (Firestore in `asia-south1` Mumbai, free Spark
+plan). Its web config is in `src/config/firebaseConfig.js` (safe to commit — these values are
+public; security comes from `firestore.rules`). Set `VITE_DEMO_MODE=true` in a `.env` file to run
+without Firebase.
 
-To send real SMS OTPs with Firebase Phone Auth:
+- **Customer login**: "Continue with Google", then name + mobile number for delivery. Free and
+  unlimited. The mobile number is not OTP-verified.
+- **Admin login** (`/admin/login`): "Sign in with Google". Only Google accounts whose UID has a
+  document in the Firestore **admins** collection get in. The first time, the login page shows
+  your UID — in the Firebase console open **Firestore → Data → Start collection**, name it
+  `admins`, use the UID as the document ID and add any field (e.g. `name: Vikash`).
+- **Orders** are saved to the Firestore `orders` collection and appear live in the admin panel on
+  any device. Access is controlled by `firestore.rules` (already published; paste it again under
+  **Firestore → Rules** if you change it).
+- **Authorized domains**: `localhost` works out of the box. When you host the site, add its domain
+  under **Authentication → Settings → Authorized domains**.
+- **Free limits** (Spark): 50K document reads / 20K writes per day, 1 GiB stored.
+
+In demo mode orders stay in the browser's localStorage, so the admin panel only sees
+orders placed in the same browser.
+
+Desktop notifications use the browser Notification API, so they arrive while the admin panel is
+open in a tab. To be notified with the browser closed (or on a phone), add Firebase Cloud
+Messaging with a service worker and a Cloud Function that fires when an order is created.
+
+## Optional: SMS OTP login
+
+In demo mode the app uses phone + OTP with the code shown on screen (no SMS is sent).
+
+To send real SMS OTPs instead of Google login, set `VITE_LOGIN_METHOD=phone` in `.env` and:
 
 1. Create a project at https://console.firebase.google.com and add a **Web app**.
 2. **Authentication → Sign-in method → Phone**: enable it.
@@ -79,13 +115,15 @@ replace `sendOtp` / `verifyOtp` there. Those providers require a backend to keep
 ```
 src/
   context/     DishContext (menu CRUD), CartContext, AuthContext, UserContext, SettingsContext,
-               RestaurantContext (profile, hours), OrderContext (placed orders)
+               RestaurantContext (profile, hours), OrderContext (placed orders),
+               AdminOrdersContext (live order feed + notifications)
   components/  Navbar, Footer, Logo, Icon, DishCard, DishImage, VegIcon, AddressForm,
                CheckoutBar, ProtectedRoute, RequireUser
   pages/       Menu, Cart, TrackOrder, Login
-  pages/admin/ AdminLogin, AdminDashboard, AdminSettings, AdminSections, AdminRestaurant, DishForm
+  pages/admin/ AdminLogin, AdminOrders, AdminOrderDetail, AdminDashboard, AdminSettings, AdminSections, AdminRestaurant, DishForm
   data/        seedDishes.js (initial menu), defaultSettings.js, defaultRestaurant.js (profile, sections, labels)
-  utils/       storage.js, hours.js (open / closed), image.js, bill.js, address.js, delivery.js (slots, payment, progress)
+  services/    firebase.js (shared setup), customerAuth.js (Google login), otp.js (phone OTP), orderStore.js (orders → kitchen)
+  utils/       storage.js, hours.js (open / closed), notify.js (desktop alerts), orders.js, image.js, bill.js, address.js, delivery.js (slots, payment, progress)
 ```
 
 ## Notes before production

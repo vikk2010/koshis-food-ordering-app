@@ -3,31 +3,17 @@
 // Firebase Phone Auth. Otherwise it runs in demo mode: the OTP is generated
 // locally and shown on screen, so no SMS is sent.
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-}
+import { getFirebase as getFirebaseApp, isFirebaseConfigured } from './firebase.js'
 
-export const isDemoMode = !firebaseConfig.apiKey
+export const isDemoMode = !isFirebaseConfigured
 
 const OTP_TTL_MS = 5 * 60 * 1000
 
 // ---------- Firebase ----------
 
-let firebaseAuthPromise = null
 let recaptchaVerifier = null
 
-// Firebase is loaded lazily so demo mode doesn't ship it in the main bundle.
-function getFirebase() {
-  if (!firebaseAuthPromise) {
-    firebaseAuthPromise = Promise.all([import('firebase/app'), import('firebase/auth')]).then(
-      ([appMod, authMod]) => ({ auth: authMod.getAuth(appMod.initializeApp(firebaseConfig)), authMod }),
-    )
-  }
-  return firebaseAuthPromise
-}
+const getFirebase = () => getFirebaseApp()
 
 async function firebaseSendOtp(phone, recaptchaContainerId) {
   const { auth, authMod } = await getFirebase()
@@ -47,7 +33,8 @@ async function firebaseSendOtp(phone, recaptchaContainerId) {
 
 async function firebaseVerifyOtp(session, code) {
   try {
-    await session.confirmation.confirm(code)
+    const cred = await session.confirmation.confirm(code)
+    return cred.user.uid
   } catch (err) {
     throw new Error(firebaseErrorMessage(err))
   }
@@ -82,7 +69,7 @@ export function sendOtp(phone, recaptchaContainerId) {
   return isDemoMode ? Promise.resolve(demoSendOtp()) : firebaseSendOtp(phone, recaptchaContainerId)
 }
 
-/** Resolves if `code` is correct for the session, otherwise throws with a user-facing message. */
+/** Resolves (with the Firebase uid, if any) if `code` is correct, otherwise throws a user-facing message. */
 export async function verifyOtp(session, code) {
   return isDemoMode ? demoVerifyOtp(session, code) : firebaseVerifyOtp(session, code)
 }

@@ -38,6 +38,7 @@ export default function Cart() {
   const [slot, setSlot] = useState(null)
   const [payment, setPayment] = useState('upi')
   const [error, setError] = useState('')
+  const [placing, setPlacing] = useState(false)
 
   if (items.length === 0) {
     return (
@@ -94,7 +95,7 @@ export default function Cart() {
     setError('')
   }
 
-  const placeOrder = () => {
+  const placeOrder = async () => {
     if (closedReason) {
       setError(closedReason)
       return
@@ -103,8 +104,12 @@ export default function Cart() {
       setError('Please add a delivery address')
       return
     }
-    // TODO: send this order to a backend API (and a payment gateway for UPI / card).
-    const order = addOrder({
+    // TODO: connect a payment gateway for UPI / card before taking real payments.
+    setPlacing(true)
+    setError('')
+    let order
+    try {
+      order = await addOrder({
       items: items.map((i) => ({ ...i, category: getDish(i.id)?.category ?? 'veg' })),
       note: note.trim(),
       coupon: couponResult.discount > 0 ? appliedCode : null,
@@ -113,7 +118,12 @@ export default function Cart() {
       eta: settings.deliveryTimeMin,
       scheduledFor,
       payment,
-    })
+      })
+    } catch (err) {
+      setError(err.message)
+      setPlacing(false)
+      return
+    }
     clearCart()
     navigate(`/orders/${order.id}`)
   }
@@ -210,7 +220,7 @@ export default function Cart() {
                 <div className="option-tile selected">
                   <Icon name="pin" size={22} />
                   <div className="option-body">
-                    <strong>{address.label}</strong>
+                    <strong>{address.label}{address.name && ` · ${address.name}`}</strong>
                     <div className="muted small">{formatAddress(address)}</div>
                   </div>
                   <button className="text-link" onClick={() => setShowAllAddresses(true)}>Change</button>
@@ -350,7 +360,9 @@ export default function Cart() {
             {closedReason && <p className="closed-note">{closedReason}</p>}
             {error && error !== closedReason && <p className="error">{error}</p>}
             <div className="place-order">
-              <button className="btn large" onClick={placeOrder} disabled={Boolean(closedReason)}>Place order · {formatPrice(bill.grandTotal)}</button>
+              <button className="btn large" onClick={placeOrder} disabled={Boolean(closedReason) || placing}>
+                {placing ? 'Placing order…' : `Place order · ${formatPrice(bill.grandTotal)}`}
+              </button>
               <button className="btn secondary" onClick={clearCart}>Clear cart</button>
             </div>
             <p className="muted small" style={{ margin: 0 }}>

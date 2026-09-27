@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// Orders: signed-in customers (Google or phone login) can create orders under their own account
+// and read them back; only admins (UID listed in the "admins" collection) can read every order.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /orders/{orderId} {
+      allow create: if signedIn()
+        && request.resource.data.customerUid == request.auth.uid
+        && request.resource.data.id == orderId;
+      allow read: if isAdmin() || (signedIn() && resource.data.customerUid == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Admin allowlist: add documents by hand in the Firebase console (document ID = admin's UID).
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}

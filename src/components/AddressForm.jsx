@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 const LABELS = ['Home', 'Work', 'Other']
-const EMPTY = { label: 'Home', house: '', area: '', landmark: '', city: '', pincode: '' }
+const EMPTY = { label: 'Home', name: '', house: '', area: '', landmark: '', city: '', pincode: '' }
 
 export default function AddressForm({ onSave, onCancel }) {
   const [form, setForm] = useState(EMPTY)
@@ -12,8 +12,8 @@ export default function AddressForm({ onSave, onCancel }) {
   // Not a <form>: this renders inside the cart page, and nested submit handling isn't needed.
   const handleSave = () => {
     const trimmed = Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v.trim()]))
-    if (!trimmed.house || !trimmed.area || !trimmed.city) {
-      setError('Please fill house/flat, area and city')
+    if (!trimmed.name || !trimmed.house || !trimmed.area || !trimmed.city) {
+      setError('Please fill name, house/flat, area and city')
       return
     }
     if (!/^\d{6}$/.test(trimmed.pincode)) {
@@ -37,6 +37,10 @@ export default function AddressForm({ onSave, onCancel }) {
           </button>
         ))}
       </div>
+      <label>
+        Name
+        <input value={form.name} onChange={set('name')} placeholder="Who should the rider ask for?" maxLength={40} autoComplete="name" />
+      </label>
       <label>
         House / Flat / Floor
         <input value={form.house} onChange={set('house')} placeholder="Flat 402, Sunrise Apartments" />
