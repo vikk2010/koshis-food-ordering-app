@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAdminOrders } from '../../context/AdminOrdersContext.jsx'
 import { ordersAreShared } from '../../services/orderStore.js'
 import { formatPrice } from '../../utils/bill.js'
-import { paymentLabel } from '../../utils/delivery.js'
+import OrderActions, { PaymentBadge, StatusBadge } from '../../components/OrderActions.jsx'
+import { isOpen, orderStatus } from '../../utils/orderStatus.js'
 import {
   customerName, formatClock, formatDate, formatPhone, itemCount, itemsSummary, startOfDay, timeAgo,
 } from '../../utils/orders.js'
@@ -15,6 +16,16 @@ const RANGES = [
   { key: 'all', label: 'All', from: () => 0, to: () => Infinity },
 ]
 
+const STATUS_FILTERS = [
+  { key: 'all', label: 'All statuses', test: () => true },
+  { key: 'active', label: 'Active', test: isOpen },
+  { key: 'pending', label: 'Waiting to accept', test: (o) => orderStatus(o) === 'pending' },
+  { key: 'preparing', label: 'Preparing', test: (o) => orderStatus(o) === 'preparing' },
+  { key: 'out', label: 'Out for delivery', test: (o) => orderStatus(o) === 'out' },
+  { key: 'delivered', label: 'Delivered', test: (o) => orderStatus(o) === 'delivered' },
+  { key: 'cancelled', label: 'Cancelled', test: (o) => orderStatus(o) === 'cancelled' },
+]
+
 // "Orders" admin screen: every order with who placed it and when, live.
 export default function AdminOrders() {
   const {
@@ -24,6 +35,7 @@ export default function AdminOrders() {
   const navigate = useNavigate()
   const [range, setRange] = useState('today')
   const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [now, setNow] = useState(() => Date.now())
 
   // Keep "5 min ago" labels fresh.
@@ -36,11 +48,13 @@ export default function AdminOrders() {
   const q = query.trim().toLowerCase().replace(/\s/g, '')
   const visible = orders.filter((o) => {
     if (o.placedAt < r.from(now) || o.placedAt >= r.to(now)) return false
+    if (!STATUS_FILTERS.find((f) => f.key === statusFilter).test(o)) return false
     if (!q) return true
     return [o.number, o.phone, customerName(o)].some((v) => v?.toLowerCase().replace(/\s/g, '').includes(q))
   })
   const todays = orders.filter((o) => o.placedAt >= startOfDay(now))
-  const todayRevenue = todays.reduce((sum, o) => sum + o.bill.grandTotal, 0)
+  const waiting = orders.filter((o) => orderStatus(o) === 'pending').length
+  const todayRevenue = todays.filter((o) => orderStatus(o) !== 'cancelled').reduce((sum, o) => sum + o.bill.grandTotal, 0)
   const scheduledUpcoming = orders.filter((o) => o.scheduledFor && o.scheduledFor > now).length
 
   return (
@@ -68,7 +82,7 @@ export default function AdminOrders() {
       <div className="stat-row">
         <div className="card stat"><span className="eyebrow">Orders today</span><strong>{todays.length}</strong></div>
         <div className="card stat"><span className="eyebrow">Revenue today</span><strong>{formatPrice(Math.round(todayRevenue))}</strong></div>
-        <div className="card stat"><span className="eyebrow">New (unseen)</span><strong className={newCount ? 'accent' : ''}>{newCount}</strong></div>
+        <div className="card stat"><span className="eyebrow">Waiting to accept</span><strong className={waiting ? 'accent' : ''}>{waiting}</strong></div>
         <div className="card stat"><span className="eyebrow">Upcoming scheduled</span><strong>{scheduledUpcoming}</strong></div>
       </div>
 
@@ -88,6 +102,9 @@ export default function AdminOrders() {
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Search orders"
         />
+        <select className="status-filter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status">
+          {STATUS_FILTERS.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+        </select>
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -103,6 +120,7 @@ export default function AdminOrders() {
               <th>Delivery</th>
               <th>Payment</th>
               <th className="num">Total</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -133,15 +151,19 @@ export default function AdminOrders() {
                   <td className="nowrap small">
                     {o.scheduledFor ? <span className="sched-chip">Scheduled · {formatClock(o.scheduledFor)}</span> : 'Now'}
                   </td>
-                  <td className="nowrap small">{paymentLabel(o.payment)}</td>
+                  <td className="nowrap small"><PaymentBadge order={o} /></td>
                   <td className="num nowrap"><strong>{formatPrice(o.bill.grandTotal)}</strong></td>
+                  <td className="status-cell">
+                    <StatusBadge order={o} />
+                    <OrderActions order={o} compact />
+                  </td>
                 </tr>
               )
             })}
             {!loading && visible.length === 0 && (
-              <tr><td colSpan="7" className="empty">No orders {query ? 'match your search' : r.key === 'all' ? 'yet' : `for ${r.label.toLowerCase()}`}.</td></tr>
+              <tr><td colSpan="8" className="empty">No orders {query ? 'match your search' : r.key === 'all' ? 'yet' : `for ${r.label.toLowerCase()}`}.</td></tr>
             )}
-            {loading && <tr><td colSpan="7" className="empty">Loading orders…</td></tr>}
+            {loading && <tr><td colSpan="8" className="empty">Loading orders…</td></tr>}
           </tbody>
         </table>
       </div>

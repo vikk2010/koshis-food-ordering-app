@@ -30,6 +30,64 @@ export async function submitOrder(order) {
   }
 }
 
+/** Admin: saves a status / payment change on an order. Rejects with a user-facing message on failure. */
+export async function updateOrder(id, updates) {
+  if (!isFirebaseConfigured) {
+    const all = load(LOCAL_KEY, [])
+    if (!all.some((o) => o.id === id)) throw new Error('Order not found')
+    if (!save(LOCAL_KEY, all.map((o) => (o.id === id ? { ...o, ...updates } : o)))) throw new Error('Could not save the change.')
+    window.dispatchEvent(new Event(LOCAL_EVENT))
+    return
+  }
+  try {
+    const { db, fs } = await getFirestoreDb('admin')
+    await fs.updateDoc(fs.doc(db, 'orders', id), updates)
+  } catch (err) {
+    console.error(err)
+    throw new Error(err.code === 'permission-denied'
+      ? 'This account is not allowed to update orders.'
+      : 'Could not update the order — check your connection and try again.')
+  }
+}
+
+/**
+ * Customer: calls onChange(order) with the latest copy of one order (status set by the kitchen)
+ * now and whenever it changes. Returns an unsubscribe function.
+ */
+export function subscribeToOrder(id, onChange) {
+  if (!isFirebaseConfigured) {
+    const emit = () => {
+      const found = load(LOCAL_KEY, []).find((o) => o.id === id)
+      if (found) onChange(found)
+    }
+    const onStorage = (e) => e.key === LOCAL_KEY && emit()
+    emit()
+    window.addEventListener('storage', onStorage) // admin updates from another tab
+    window.addEventListener(LOCAL_EVENT, emit)
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener(LOCAL_EVENT, emit)
+    }
+  }
+
+  let unsubscribe = () => {}
+  let cancelled = false
+  getFirestoreDb()
+    .then(({ db, fs }) => {
+      if (cancelled) return
+      unsubscribe = fs.onSnapshot(
+        fs.doc(db, 'orders', id),
+        (snap) => snap.exists() && onChange(snap.data()),
+        (err) => console.error('Order status updates unavailable:', err.message),
+      )
+    })
+    .catch((err) => console.error(err))
+  return () => {
+    cancelled = true
+    unsubscribe()
+  }
+}
+
 /**
  * Admin: calls onChange(orders) with every order (newest first) now and whenever one arrives.
  * Returns an unsubscribe function.

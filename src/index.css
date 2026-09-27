@@ -374,6 +374,62 @@ a.tab.active { color: #fff; }
 .table-wrap.flat { border: none; border-radius: 0; margin-top: 8px; }
 
 /* ---------- Responsive ---------- */
+/* ---------- Order status (customer + admin) ---------- */
+.eta-pill.waiting { background: var(--accent-soft); color: #9a5b00; }
+.pulse-dot { width: 12px; height: 12px; border-radius: 999px; background: var(--accent); flex-shrink: 0; animation: pulse 1.6s ease-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgb(245 159 0 / 0.5); } 100% { box-shadow: 0 0 0 10px rgb(245 159 0 / 0); } }
+@media (prefers-reduced-motion: reduce) { .pulse-dot { animation: none; } }
+.waiting-note { display: flex; gap: 12px; align-items: flex-start; margin: 20px 0; padding: 14px 16px; border-radius: var(--radius-sm); background: var(--accent-soft); color: #6b4000; }
+.waiting-note .pulse-dot { margin-top: 4px; }
+.waiting-note p { margin: 0; }
+.waiting-note.cancelled { background: var(--danger-soft); color: var(--danger); }
+.waiting-note a { color: inherit; font-weight: 600; }
+.status-chip.warn, .pay-chip.warn { background: var(--accent-soft); color: #9a5b00; }
+.pay-chip { display: inline-block; padding: 3px 8px; border-radius: 999px; background: var(--success-soft); color: var(--success); font-size: 0.75rem; font-weight: 500; white-space: nowrap; align-self: flex-start; }
+.order-status { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.order-status.s-pending { background: var(--accent-soft); color: #9a5b00; border-color: #ffe2a3; }
+.order-status.s-preparing { background: var(--primary-soft); color: var(--primary); border-color: #ffd4b8; }
+.order-status.s-out { background: #e7f0ff; color: #1c5dc9; border-color: #c9dcff; }
+.order-status.s-delivered { background: var(--success-soft); color: var(--success); border-color: #c6ebcf; }
+.order-status.s-cancelled { background: var(--danger-soft); color: var(--danger); border-color: #f1c4c0; }
+.status-cell { min-width: 150px; }
+.status-cell .order-status { margin-bottom: 6px; }
+.order-actions { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.order-actions.compact { display: flex; flex-direction: column; gap: 4px; }
+.order-actions.compact .btn { white-space: nowrap; }
+.order-actions code { font-size: 0.8rem; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+.btn.pay { background: var(--success); border-color: var(--success); }
+.btn.pay:hover { background: #26843a; border-color: #26843a; }
+.cancel-confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.danger-link { color: var(--danger); }
+.status-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.status-trail { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.875rem; }
+.status-trail li { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.status-trail li.done span:first-child { color: var(--text); font-weight: 500; }
+.status-trail li.done span:first-child::before { content: '✓ '; color: var(--success); }
+.status-filter { padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 0.875rem; }
+
+/* ---------- UPI QR payment ---------- */
+.upi-pay { display: flex; gap: 24px; align-items: center; border-color: var(--primary-soft); }
+.upi-pay-qr { flex-shrink: 0; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; line-height: 0; }
+.upi-pay-info { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.upi-pay-info h2 { margin: 0; }
+.upi-pay-info p { margin: 0; }
+.upi-id-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.upi-id-row code { font-size: 0.875rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; overflow-wrap: anywhere; }
+.upi-app-link { align-self: flex-start; margin-top: 4px; text-decoration: none; }
+.qr-code { display: block; max-width: 100%; height: auto; }
+.upi-settings { display: flex; gap: 24px; align-items: flex-start; }
+.upi-settings .settings-grid { flex: 1; }
+.upi-preview { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
+@media (max-width: 560px) {
+  .upi-pay { flex-direction: column; align-items: stretch; text-align: center; }
+  .upi-pay-qr { align-self: center; }
+  .upi-id-row, .upi-app-link { justify-content: center; align-self: center; }
+  .upi-settings { flex-direction: column; }
+  .upi-preview { align-self: center; }
+}
+
 @media (max-width: 1024px) {
   .checkout-grid { grid-template-columns: 1fr; }
   .checkout-side { position: static; }

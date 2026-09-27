@@ -20,11 +20,16 @@ export function OrderProvider({ children }) {
    */
   const addOrder = async (order) => {
     const id = crypto.randomUUID()
+    const placedAt = Date.now()
     const saved = {
       ...order,
       id,
-      number: `KC-${Date.now().toString().slice(-5)}`,
-      placedAt: Date.now(),
+      number: `KC-${placedAt.toString().slice(-5)}`,
+      placedAt,
+      // The restaurant moves the order along from the admin panel (see utils/orderStatus.js).
+      status: 'pending',
+      statusTimes: { pending: placedAt },
+      paymentStatus: 'pending',
       phone: user.phone,
       customerUid: user.uid || '',
       customerEmail: user.email || '',
