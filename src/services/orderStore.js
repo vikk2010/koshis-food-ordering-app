@@ -113,6 +113,31 @@ export function subscribeToOrder(id, onChange) {
 }
 
 /**
+ * Admin: every order placed in [from, to) (ms timestamps), oldest first — for reports and exports.
+ * Rejects with a user-facing message.
+ */
+export async function fetchOrders(from, to) {
+  if (!isFirebaseConfigured) {
+    return load(LOCAL_KEY, []).filter((o) => o.placedAt >= from && o.placedAt < to).sort((a, b) => a.placedAt - b.placedAt)
+  }
+  try {
+    const { db, fs } = await getFirestoreDb('admin')
+    const q = fs.query(
+      fs.collection(db, 'orders'),
+      fs.where('placedAt', '>=', from),
+      fs.where('placedAt', '<', Number.isFinite(to) ? to : Number.MAX_SAFE_INTEGER),
+      fs.orderBy('placedAt', 'asc'),
+    )
+    return (await fs.getDocs(q)).docs.map((d) => d.data())
+  } catch (err) {
+    console.error(err)
+    throw new Error(err.code === 'permission-denied'
+      ? 'This account is not allowed to read orders.'
+      : 'Could not load orders — check your connection and try again.')
+  }
+}
+
+/**
  * Admin: calls onChange(orders) with every order (newest first) now and whenever one arrives.
  * Returns an unsubscribe function.
  */

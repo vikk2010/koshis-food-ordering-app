@@ -124,7 +124,7 @@ export default function Cart() {
       scheduledFor,
       payment,
       // Snapshot of where to pay, so the QR code on the tracking page matches this order.
-      upi: payment === 'upi' ? { id: restaurant.upiId, name: restaurant.upiName || restaurant.name } : null,
+      upi: payment === 'upi' ? { id: restaurant.upiId, name: restaurant.upiName || restaurant.name, merchant: Boolean(restaurant.upiMerchant) } : null,
       })
     } catch (err) {
       setError(err.message)
@@ -290,7 +290,7 @@ export default function Cart() {
             </div>
             {payment === 'upi' && (
               <p className="muted small" style={{ margin: '12px 0 0' }}>
-                After you place the order you'll get a QR code for {formatPrice(bill.grandTotal)}. The restaurant starts
+                After you place the order you'll see the UPI details to pay {formatPrice(bill.grandTotal)}. The restaurant starts
                 cooking once your payment is received.
               </p>
             )}

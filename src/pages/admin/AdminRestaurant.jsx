@@ -273,6 +273,18 @@ function RestaurantForm() {
             </div>
           )}
         </div>
+        <label className="checkbox upi-merchant">
+          <input type="checkbox" checked={Boolean(form.upiMerchant)} onChange={(e) => patch({ upiMerchant: e.target.checked })} />
+          <span>
+            This is a <strong>business (merchant) UPI ID</strong>
+            <span className="hint">
+              GPay, PhonePe and Paytm don't allow one-tap payment links to a personal UPI ID, so customers on a phone copy
+              your UPI ID and pay with "Pay UPI ID". If this is a business UPI ID (Google Pay for Business, PhonePe
+              Business, Paytm for Business or your bank's merchant account), tick this to also show a one-tap
+              "Pay with UPI app" button.
+            </span>
+          </span>
+        </label>
       </div>
 
       {/* ----- Opening hours ----- */}
