@@ -11,17 +11,17 @@ const isPhone = () =>
 /**
  * "Pay by UPI" card.
  *
- * GPay / PhonePe / Paytm block (or cap at ₹2,000) one-tap payment links and saved QR images that
- * pay a *personal* UPI ID — the "You can pay up to ₹2,000 with QR codes via gallery" message.
- * So on a phone we only offer the one-tap button for a business (merchant) UPI ID; otherwise the
- * customer copies the UPI ID and amount and pays it with "Pay to UPI ID" inside their app, which
- * has no such limit. On a computer the customer scans the QR code with their phone camera.
+ * - Business (merchant) UPI ID: QR code / one-tap link with the amount already filled in.
+ * - Personal UPI ID: GPay / PhonePe / Paytm block (or cap at ₹2,000) links and QR images with a
+ *   preset amount for personal IDs. So we show the restaurant's own QR code (uploaded in Restaurant
+ *   Details) or the UPI ID, and the customer types the amount themselves.
  */
-export default function UpiPayment({ upiId, name, amount, note, merchant = false }) {
+export default function UpiPayment({ upiId, name, amount, note, merchant = false, qrImage = '' }) {
   const [copied, setCopied] = useState('')
   const [phone] = useState(isPhone)
   const link = upiPayLink({ upiId, name, amount, note })
   const amountText = Number(amount).toFixed(2).replace(/\.00$/, '')
+  const ownQr = !merchant && qrImage ? qrImage : ''
 
   const copy = async (what, text) => {
     try {
@@ -39,9 +39,20 @@ export default function UpiPayment({ upiId, name, amount, note, merchant = false
     setTimeout(() => setCopied((c) => (c === what ? '' : c)), 2500)
   }
 
-  const qr = (
+  const qr = ownQr ? (
+    <div className="upi-pay-qr own">
+      <img src={ownQr} alt={`UPI QR code for ${name}`} width={phone ? 180 : 200} />
+    </div>
+  ) : (
     <div className="upi-pay-qr">
       <QrCode value={link} size={phone ? 150 : 200} label={`UPI QR code to pay ${formatPrice(amount)} to ${name}`} />
+    </div>
+  )
+
+  const amountBox = (
+    <div className="upi-amount-box">
+      <span className="muted small">{ownQr || !merchant ? 'Enter this amount in your UPI app' : 'Amount'}</span>
+      <strong className="upi-amount">₹{amountText}</strong>
     </div>
   )
 
@@ -50,7 +61,7 @@ export default function UpiPayment({ upiId, name, amount, note, merchant = false
       <div className="card upi-pay phone">
         <div className="upi-pay-info">
           <span className="eyebrow">Pay by UPI</span>
-          <h2>Pay {formatPrice(amount)}</h2>
+          <h2>Pay {formatPrice(amount)} to {name}</h2>
 
           {merchant && (
             <>
@@ -78,30 +89,31 @@ export default function UpiPayment({ upiId, name, amount, note, merchant = false
             </li>
             <li>
               <div>
-                <span className="muted small">Pay exactly this amount to <strong>{name}</strong></span>
+                <span className="muted small">Type the amount and pay <strong>{name}</strong></span>
                 <strong className="upi-amount">₹{amountText}</strong>
               </div>
               <button type="button" className="btn small secondary" onClick={() => copy('amount', amountText)}>
                 {copied === 'amount' ? 'Copied ✓' : 'Copy'}
               </button>
             </li>
-            {note && (
-              <li>
-                <div>
-                  <span className="muted small">Add this note so we can match your payment</span>
-                  <code>{note}</code>
-                </div>
-                <button type="button" className="btn small secondary" onClick={() => copy('note', note)}>
-                  {copied === 'note' ? 'Copied ✓' : 'Copy'}
-                </button>
-              </li>
-            )}
           </ol>
 
-          <details className="upi-qr-more">
-            <summary>Paying from another phone? Show QR code</summary>
-            {qr}
-          </details>
+          {ownQr ? (
+            <details className="upi-qr-more">
+              <summary>Or pay with our QR code</summary>
+              <p className="muted small">
+                Scan it from another phone, or save it and choose it from your gallery in the UPI app (up to ₹2,000).
+                Then enter <strong>₹{amountText}</strong>.
+              </p>
+              {qr}
+              <a className="btn small secondary" href={ownQr} download="upi-qr.jpg">Save QR image</a>
+            </details>
+          ) : (
+            <details className="upi-qr-more">
+              <summary>Paying from another phone? Show QR code</summary>
+              {qr}
+            </details>
+          )}
         </div>
       </div>
     )
@@ -114,9 +126,11 @@ export default function UpiPayment({ upiId, name, amount, note, merchant = false
         <span className="eyebrow">Scan & pay with any UPI app</span>
         <h2>Pay {formatPrice(amount)}</h2>
         <p className="muted small">
-          Open GPay, PhonePe, Paytm or BHIM on your phone, scan this code with the app's scanner and confirm. The amount
-          is filled in for you.
+          {ownQr
+            ? 'Open GPay, PhonePe, Paytm or BHIM on your phone, scan this code, then type the amount below and pay.'
+            : 'Open GPay, PhonePe, Paytm or BHIM on your phone, scan this code with the app’s scanner and confirm. The amount is filled in for you.'}
         </p>
+        {ownQr && amountBox}
         <div className="upi-id-row">
           <span className="muted small">Paying</span>
           <strong>{name}</strong>
@@ -126,7 +140,6 @@ export default function UpiPayment({ upiId, name, amount, note, merchant = false
           <code>{upiId}</code>
           <button type="button" className="text-link small" onClick={() => copy('id', upiId)}>{copied === 'id' ? 'Copied ✓' : 'Copy'}</button>
         </div>
-        {note && <p className="muted small" style={{ margin: 0 }}>Reference: {note}</p>}
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSettings } from '../../context/SettingsContext.jsx'
-import { couponLabel } from '../../utils/bill.js'
+import { OFFER_THEMES, couponHeadline, couponLabel, couponTerms, offerTheme } from '../../utils/bill.js'
 
 const FIELDS = [
   { key: 'deliveryTimeMin', label: 'Delivery time', unit: 'mins' },
@@ -11,7 +11,7 @@ const FIELDS = [
   { key: 'gstPercent', label: 'GST', unit: '%', max: 28 },
 ]
 
-const EMPTY_COUPON = { code: '', type: 'flat', value: '', minOrder: '', maxDiscount: '' }
+const EMPTY_COUPON = { code: '', type: 'flat', value: '', minOrder: '', maxDiscount: '', title: '', theme: '' }
 
 export default function AdminSettings() {
   const { ready } = useSettings()
@@ -70,7 +70,7 @@ function SettingsForm() {
     if (minOrder < 0 || maxDiscount < 0) return setCouponError('Amounts cannot be negative')
 
     try {
-      await addCoupon({ code, type: coupon.type, value, minOrder, maxDiscount, active: true })
+      await addCoupon({ code, type: coupon.type, value, minOrder, maxDiscount, active: true, title: coupon.title.trim(), theme: coupon.theme })
       setCoupon(EMPTY_COUPON)
       setCouponError('')
     } catch (err) {
@@ -141,20 +141,64 @@ function SettingsForm() {
               <input type="number" min="0" value={coupon.maxDiscount} onChange={setC('maxDiscount')} placeholder="No cap" />
             </label>
           )}
+          <label>
+            Headline on home page
+            <input value={coupon.title} onChange={setC('title')} maxLength={30} placeholder="Optional, e.g. Weekend feast" />
+          </label>
+          <label>
+            Card colour
+            <select value={coupon.theme} onChange={setC('theme')}>
+              <option value="">Automatic</option>
+              {OFFER_THEMES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </label>
           <button className="btn" type="submit">+ Add Coupon</button>
         </form>
+        {coupon.code.trim() && Number(coupon.value) > 0 && (
+          <div className="offer-preview">
+            <span className="muted small">Preview on the home page</span>
+            <article className={`offer-card theme-${offerTheme(coupon, coupons.filter((c) => c.active).length)}`}>
+              <div className="offer-card-top">
+                {coupon.title.trim() && <span className="offer-title">{coupon.title.trim()}</span>}
+                <h2 className="offer-headline">{couponHeadline({ ...coupon, value: Number(coupon.value) })}</h2>
+                <p className="offer-terms">
+                  {couponTerms({ ...coupon, minOrder: Number(coupon.minOrder || 0), maxDiscount: Number(coupon.maxDiscount || 0) })}
+                </p>
+              </div>
+              <div className="offer-card-bottom">
+                <span className="offer-code"><span>{coupon.code.trim().toUpperCase()}</span></span>
+              </div>
+            </article>
+          </div>
+        )}
         {couponError && <p className="error">{couponError}</p>}
 
         <div className="table-wrap flat">
           <table className="admin-table">
             <thead>
-              <tr><th>Code</th><th>Offer</th><th>Active</th><th></th></tr>
+              <tr><th>Code</th><th>Offer</th><th>Card colour</th><th>Active</th><th></th></tr>
             </thead>
             <tbody>
               {coupons.map((c) => (
                 <tr key={c.id}>
                   <td><span className="coupon-code">{c.code}</span></td>
-                  <td>{couponLabel(c)}</td>
+                  <td>
+                    {couponLabel(c)}
+                    {c.title && <div className="muted small">“{c.title}”</div>}
+                  </td>
+                  <td>
+                    <span className="theme-pick">
+                      <span className={`theme-dot theme-${offerTheme(c, coupons.filter((x) => x.active).indexOf(c))}`} aria-hidden="true" />
+                      <select
+                        value={c.theme || ''}
+                        onChange={(e) => updateCoupon(c.id, { theme: e.target.value }).catch(fail)}
+                        aria-label={`Card colour for ${c.code}`}
+                      >
+                        <option value="">Automatic</option>
+                        {OFFER_THEMES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                      </select>
+                    </span>
+                  </td>
                   <td>
                     <input
                       type="checkbox"
@@ -175,7 +219,7 @@ function SettingsForm() {
                   </td>
                 </tr>
               ))}
-              {coupons.length === 0 && <tr><td colSpan="4" className="empty">No coupons yet.</td></tr>}
+              {coupons.length === 0 && <tr><td colSpan="5" className="empty">No coupons yet.</td></tr>}
             </tbody>
           </table>
         </div>

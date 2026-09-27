@@ -5,8 +5,8 @@ import { useSettings } from '../context/SettingsContext.jsx'
 import { useRestaurant } from '../context/RestaurantContext.jsx'
 import DishCard from '../components/DishCard.jsx'
 import CheckoutBar from '../components/CheckoutBar.jsx'
+import OfferCards from '../components/OfferCards.jsx'
 import Icon from '../components/Icon.jsx'
-import { couponLabel } from '../utils/bill.js'
 
 const TABS = [
   { key: 'all', label: 'All' },
@@ -38,7 +38,8 @@ export default function Menu() {
   )
   const countFor = (key) => (key === 'all' ? dishes.length : dishes.filter((d) => d.category === key).length)
   const availableCount = dishes.filter((d) => d.available).length
-  const offer = coupons.find((c) => c.active)
+  const activeCoupons = coupons.filter((c) => c.active)
+  const offer = activeCoupons[0]
   // Only offer section filters that have dishes (in the admin's order).
   const usedSections = sections.filter((s) => dishes.some((d) => d.sectionId === s.id))
 
@@ -76,6 +77,8 @@ export default function Menu() {
           </span>
         </div>
       </div>
+
+      {activeCoupons.length > 0 && <OfferCards coupons={activeCoupons} />}
 
       <div id="menu" className="section-head">
         <div>
@@ -132,17 +135,6 @@ export default function Menu() {
         </div>
       )}
 
-      {offer && (
-        <div id="offers" className="offer-banner">
-          <div>
-            <h2>{couponLabel(offer)}</h2>
-            <p>
-              Use code <span className="code">{offer.code}</span> at checkout
-            </p>
-          </div>
-          <a className="btn large" href="#menu">Grab the offer</a>
-        </div>
-      )}
       <CheckoutBar />
     </section>
   )
