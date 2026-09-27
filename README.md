@@ -46,6 +46,12 @@ npm run build    # production build in dist/
     email, address, FSSAI licence, GSTIN, weekly opening hours and an "Accepting orders" switch.
     The footer shows these details; outside opening hours (or when orders are paused) the menu
     shows a closed banner and checkout only allows a scheduled slot inside opening hours.
+    Add the restaurant's **UPI ID** here to offer "Pay by UPI QR code" at checkout.
+  - **Order status** (`/admin/orders` and each order page): every order starts as *Waiting to accept*.
+    UPI orders: **Payment received** (after checking your UPI app) → **Start preparing** →
+    **Out for delivery** → **Mark delivered**. Cash on delivery skips the payment step. Orders can
+    also be cancelled. The customer's tracking page updates live and shows "Waiting for the
+    restaurant to accept your order" (plus the UPI QR code) until the order is accepted.
 
 Set a different admin password with a `.env` file: `VITE_ADMIN_PASSWORD=yourpassword`.
 

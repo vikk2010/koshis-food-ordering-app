@@ -5,7 +5,8 @@ import VegIcon from '../../components/VegIcon.jsx'
 import Icon from '../../components/Icon.jsx'
 import { formatPrice } from '../../utils/bill.js'
 import { formatAddress } from '../../utils/address.js'
-import { paymentLabel } from '../../utils/delivery.js'
+import OrderActions, { PaymentBadge, StatusBadge } from '../../components/OrderActions.jsx'
+import { STAGES, STATUS_LABELS, orderStatus } from '../../utils/orderStatus.js'
 import { customerName, formatClock, formatDateTime, formatPhone, itemCount } from '../../utils/orders.js'
 
 // Full details of one order for the kitchen, with a printable ticket.
@@ -82,6 +83,28 @@ export default function AdminOrderDetail() {
         </div>
 
         <aside className="checkout-side">
+          <div className="card summary-card no-print">
+            <div className="status-head">
+              <h2>Status</h2>
+              <StatusBadge order={order} />
+            </div>
+            <ol className="status-trail">
+              {[...STAGES, ...(orderStatus(order) === 'cancelled' ? ['cancelled'] : [])].map((key) => {
+                const at = key === 'pending' ? order.placedAt : order.statusTimes?.[key]
+                return (
+                  <li key={key} className={at ? 'done' : ''}>
+                    <span>{key === 'pending' ? 'Placed' : STATUS_LABELS[key]}</span>
+                    <span className="muted">{at ? formatClock(at) : '—'}</span>
+                  </li>
+                )
+              })}
+              {order.paidAt && (
+                <li className="done"><span>Payment received</span><span className="muted">{formatClock(order.paidAt)}</span></li>
+              )}
+            </ol>
+            <OrderActions order={order} />
+          </div>
+
           <div className="card summary-card">
             <h2>Bill</h2>
             <dl className="bill small">
@@ -95,7 +118,7 @@ export default function AdminOrderDetail() {
               <div><dt>GST</dt><dd>{formatPrice(bill.gst)}</dd></div>
               <div className="grand"><dt>Total</dt><dd>{formatPrice(bill.grandTotal)}</dd></div>
             </dl>
-            <span className="status-chip"><Icon name="check" size={14} /> {paymentLabel(order.payment)}</span>
+            <PaymentBadge order={order} />
             <p className="muted small" style={{ margin: 0 }}>
               {order.scheduledFor ? `Scheduled delivery at ${formatClock(order.scheduledFor)}` : `Deliver now · promised in ${order.eta} min`}
             </p>

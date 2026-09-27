@@ -36,7 +36,10 @@ export default function Cart() {
   const [schedule, setSchedule] = useState(false)
   const [slots] = useState(() => deliverySlots(settings.deliveryTimeMin + 30))
   const [slot, setSlot] = useState(null)
-  const [payment, setPayment] = useState('upi')
+  // UPI is only offered once the admin has added the restaurant's UPI ID.
+  const paymentMethods = PAYMENT_METHODS.filter((m) => m.key !== 'upi' || restaurant.upiId)
+  const [paymentChoice, setPayment] = useState(() => paymentMethods[0].key)
+  const payment = paymentMethods.some((m) => m.key === paymentChoice) ? paymentChoice : paymentMethods[0].key
   const [error, setError] = useState('')
   const [placing, setPlacing] = useState(false)
 
@@ -104,7 +107,7 @@ export default function Cart() {
       setError('Please add a delivery address')
       return
     }
-    // TODO: connect a payment gateway for UPI / card before taking real payments.
+    // UPI is paid by QR after placing the order; the admin confirms it before cooking starts.
     setPlacing(true)
     setError('')
     let order
@@ -118,6 +121,8 @@ export default function Cart() {
       eta: settings.deliveryTimeMin,
       scheduledFor,
       payment,
+      // Snapshot of where to pay, so the QR code on the tracking page matches this order.
+      upi: payment === 'upi' ? { id: restaurant.upiId, name: restaurant.upiName || restaurant.name } : null,
       })
     } catch (err) {
       setError(err.message)
@@ -271,7 +276,7 @@ export default function Cart() {
           <div className="card">
             <h2>Payment method</h2>
             <div className="options">
-              {PAYMENT_METHODS.map((m) => (
+              {paymentMethods.map((m) => (
                 <label key={m.key} className={`option-tile ${payment === m.key ? 'selected' : ''}`}>
                   <input type="radio" name="payment" checked={payment === m.key} onChange={() => setPayment(m.key)} />
                   <div className="option-body">
@@ -281,6 +286,12 @@ export default function Cart() {
                 </label>
               ))}
             </div>
+            {payment === 'upi' && (
+              <p className="muted small" style={{ margin: '12px 0 0' }}>
+                After you place the order you'll get a QR code for {formatPrice(bill.grandTotal)}. The restaurant starts
+                cooking once your payment is received.
+              </p>
+            )}
           </div>
         </div>
 

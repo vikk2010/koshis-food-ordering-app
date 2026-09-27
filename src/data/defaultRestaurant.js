@@ -20,6 +20,8 @@ export const defaultRestaurant = {
   address: { line1: '', area: '', city: '', state: '', pincode: '', mapUrl: '' },
   fssai: '',
   gstin: '',
+  upiId: '', // e.g. koshis@okhdfcbank — customers who pick UPI get a QR code for this ID
+  upiName: '', // payee name shown in the UPI app; empty = restaurant name
   acceptingOrders: true,
   // 24h "HH:MM"; `to` earlier than `from` means the kitchen closes after midnight.
   hours: Object.fromEntries(DAYS.map((d) => [d.key, { open: true, from: '11:00', to: '23:00' }])),

@@ -3,6 +3,8 @@ import { useRestaurant } from '../../context/RestaurantContext.jsx'
 import { DAYS } from '../../data/defaultRestaurant.js'
 import { fileToResizedDataUrl } from '../../utils/image.js'
 import { hoursLabel } from '../../utils/hours.js'
+import { UPI_ID_RE, upiPayLink } from '../../utils/qr.js'
+import QrCode from '../../components/QrCode.jsx'
 
 const PHONE_RE = /^[6-9]\d{9}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -19,6 +21,7 @@ function validate(f) {
   if (f.address.pincode && !PIN_RE.test(f.address.pincode)) return 'Pincode must be 6 digits'
   if (f.fssai && !FSSAI_RE.test(f.fssai)) return 'FSSAI licence number must be 14 digits'
   if (f.gstin && !GSTIN_RE.test(f.gstin)) return 'GSTIN should look like 27ABCDE1234F1Z5'
+  if (f.upiId && !UPI_ID_RE.test(f.upiId)) return 'UPI ID should look like koshis@okhdfcbank'
   for (const d of DAYS) {
     const h = f.hours[d.key]
     if (h.open && h.from === h.to) return `${d.label}: opening and closing time can't be the same`
@@ -74,6 +77,8 @@ export default function AdminRestaurant() {
       about: form.about.trim(),
       email: form.email.trim(),
       gstin: form.gstin.trim().toUpperCase(),
+      upiId: form.upiId.trim(),
+      upiName: form.upiName.trim(),
       address: Object.fromEntries(Object.entries(form.address).map(([k, v]) => [k, v.trim()])),
     }
     const problem = validate(clean)
@@ -213,6 +218,41 @@ export default function AdminRestaurant() {
             <input value={form.gstin} onChange={set('gstin', (v) => v.toUpperCase().slice(0, 15))} placeholder="27ABCDE1234F1Z5" />
             <span className="hint">Printed on the bill</span>
           </label>
+        </div>
+      </div>
+
+      {/* ----- Payments ----- */}
+      <div className="card">
+        <h2>UPI payments</h2>
+        <p className="muted small" style={{ marginTop: -8 }}>
+          Customers who choose UPI at checkout see a QR code for the exact order amount, paid straight to this UPI ID.
+          Leave empty to hide the UPI option.
+        </p>
+        <div className="upi-settings">
+          <div className="settings-grid">
+            <label>
+              UPI ID
+              <input
+                value={form.upiId}
+                onChange={set('upiId', (v) => v.replace(/\s/g, ''))}
+                placeholder="koshis@okhdfcbank"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <span className="hint">Find it in your GPay / PhonePe / Paytm for Business profile</span>
+            </label>
+            <label>
+              Payee name
+              <input value={form.upiName} onChange={set('upiName')} maxLength={50} placeholder={form.name || 'Restaurant name'} />
+              <span className="hint">Shown in the customer's UPI app · defaults to the restaurant name</span>
+            </label>
+          </div>
+          {UPI_ID_RE.test(form.upiId.trim()) && (
+            <div className="upi-preview">
+              <QrCode value={upiPayLink({ upiId: form.upiId.trim(), name: form.upiName.trim() || form.name })} size={120} label="Preview of your UPI QR code" />
+              <span className="hint">Test scan (no amount)</span>
+            </div>
+          )}
         </div>
       </div>
 
