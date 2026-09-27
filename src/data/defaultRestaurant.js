@@ -23,6 +23,8 @@ export const defaultRestaurant = {
   upiId: '', // e.g. koshis@okhdfcbank — customers who pick UPI get a QR code for this ID
   upiName: '', // payee name shown in the UPI app; empty = restaurant name
   upiQr: '', // personal UPI IDs: the restaurant's own QR image (data URL); customers type the amount
+  location: null, // kitchen position { lat, lng } — used to measure how far each customer is
+  serviceRadiusKm: 20, // orders further than this are flagged for the admin to cancel
   upiMerchant: false, // true = business UPI ID, so phones get a one-tap "Pay with UPI app" button
   acceptingOrders: true,
   // 24h "HH:MM"; `to` earlier than `from` means the kitchen closes after midnight.

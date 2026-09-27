@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext.jsx'
 import { useDishes } from '../context/DishContext.jsx'
@@ -13,6 +13,7 @@ import AddressForm from '../components/AddressForm.jsx'
 import Icon from '../components/Icon.jsx'
 import { calcBill, couponLabel, evaluateCoupon, formatPrice } from '../utils/bill.js'
 import { formatAddress } from '../utils/address.js'
+import { distanceKm, geocodeAddress } from '../utils/geo.js'
 import { deliverySlots, formatTime, PAYMENT_METHODS } from '../utils/delivery.js'
 
 // "02 · Cart & Checkout" screen from Figma.
@@ -42,6 +43,19 @@ export default function Cart() {
   const payment = paymentMethods.some((m) => m.key === paymentChoice) ? paymentChoice : paymentMethods[0].key
   const [error, setError] = useState('')
   const [placing, setPlacing] = useState(false)
+  // Map positions looked up for saved addresses that don't have one yet: { [addressId]: {lat,lng} | null }.
+  const [lookedUp, setLookedUp] = useState({})
+
+  const selected = addresses.find((a) => a.id === addressId) ?? addresses.at(-1)
+  const needsLookup = Boolean(selected && !selected.location && restaurant.location && !(selected.id in lookedUp))
+  useEffect(() => {
+    if (!needsLookup) return undefined
+    let live = true
+    geocodeAddress(selected).then((loc) => {
+      if (live) setLookedUp((m) => ({ ...m, [selected.id]: loc ? { ...loc, source: 'address' } : null }))
+    })
+    return () => { live = false }
+  }, [needsLookup, selected?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (items.length === 0) {
     return (
@@ -59,7 +73,13 @@ export default function Cart() {
   const appliedCoupon = activeCoupons.find((c) => c.code === appliedCode)
   const couponResult = evaluateCoupon(appliedCoupon, itemTotal)
   const bill = calcBill(items, settings, couponResult.discount)
-  const address = addresses.find((a) => a.id === addressId) ?? addresses.at(-1)
+  const address = selected && !selected.location && lookedUp[selected.id] ? { ...selected, location: lookedUp[selected.id] } : selected
+  // Straight-line distance from the kitchen (when both positions are known).
+  const awayKm = address?.location && restaurant.location ? distanceKm(restaurant.location, address.location) : null
+  const tooFar = awayKm != null && awayKm > restaurant.serviceRadiusKm
+  const tooFarMessage = tooFar
+    ? `Sorry, we don't deliver to this address — it's about ${awayKm} km from our kitchen and we deliver within ${restaurant.serviceRadiusKm} km. Please choose an address closer to us.`
+    : ''
   const scheduledFor = schedule ? (slot ?? slots[0]) : null
   // Paused = no orders at all. Outside hours = only a scheduled slot inside opening hours works.
   const closedReason =
@@ -109,16 +129,35 @@ export default function Cart() {
       setError('Please add a delivery address')
       return
     }
+    if (tooFar) {
+      setError(tooFarMessage)
+      return
+    }
     // UPI is paid by QR after placing the order; the admin confirms it before cooking starts.
     setPlacing(true)
     setError('')
+    // Addresses saved before locations were recorded: look the position up now (best effort).
+    let deliverTo = address
+    if (!deliverTo.location && restaurant.location) {
+      const loc = await geocodeAddress(deliverTo)
+      if (loc) deliverTo = { ...deliverTo, location: { ...loc, source: 'address' } }
+    }
+    const away = deliverTo.location && restaurant.location ? distanceKm(restaurant.location, deliverTo.location) : null
+    if (away != null && away > restaurant.serviceRadiusKm) {
+      setLookedUp((m) => ({ ...m, [deliverTo.id]: deliverTo.location }))
+      setError(`Sorry, we don't deliver to this address — it's about ${away} km from our kitchen and we deliver within ${restaurant.serviceRadiusKm} km. Please choose an address closer to us.`)
+      setPlacing(false)
+      return
+    }
     let order
     try {
       order = await addOrder({
       items: items.map((i) => ({ ...i, category: getDish(i.id)?.category ?? 'veg' })),
       note: note.trim(),
       coupon: couponResult.discount > 0 ? appliedCode : null,
-      address,
+      address: deliverTo,
+      distanceKm: away,
+      serviceRadiusKm: restaurant.serviceRadiusKm,
       bill,
       eta: settings.deliveryTimeMin,
       scheduledFor,
@@ -236,6 +275,16 @@ export default function Cart() {
                   <Icon name="plus" /> <strong>Add a new address</strong>
                 </button>
               </div>
+            )}
+            {!showAddressForm && !showAllAddresses && awayKm != null && (
+              tooFar ? (
+                <p className="distance-note warn" role="alert">
+                  <strong>We don't deliver here yet.</strong> This address is about <strong>{awayKm} km</strong> from our
+                  kitchen and we deliver within {restaurant.serviceRadiusKm} km. Please choose or add an address closer to us.
+                </p>
+              ) : (
+                <p className="distance-note">About {awayKm} km from our kitchen</p>
+              )
             )}
           </div>
 
@@ -371,10 +420,11 @@ export default function Cart() {
               </p>
             )}
             {closedReason && <p className="closed-note">{closedReason}</p>}
-            {error && error !== closedReason && <p className="error">{error}</p>}
+            {!closedReason && tooFar && <p className="closed-note">Too far to deliver — choose an address within {restaurant.serviceRadiusKm} km of our kitchen.</p>}
+            {error && error !== closedReason && error !== tooFarMessage && <p className="error">{error}</p>}
             <div className="place-order">
-              <button className="btn large" onClick={placeOrder} disabled={Boolean(closedReason) || placing}>
-                {placing ? 'Placing order…' : `Place order · ${formatPrice(bill.grandTotal)}`}
+              <button className="btn large" onClick={placeOrder} disabled={Boolean(closedReason) || tooFar || placing}>
+                {placing ? 'Placing order…' : tooFar ? 'Too far to deliver' : `Place order · ${formatPrice(bill.grandTotal)}`}
               </button>
               <button className="btn secondary" onClick={clearCart}>Clear cart</button>
             </div>

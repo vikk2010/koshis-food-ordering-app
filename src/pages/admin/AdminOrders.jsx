@@ -4,7 +4,8 @@ import { useAdminOrders } from '../../context/AdminOrdersContext.jsx'
 import { ordersAreShared } from '../../services/orderStore.js'
 import { formatPrice } from '../../utils/bill.js'
 import OrderActions, { PaymentBadge, StatusBadge } from '../../components/OrderActions.jsx'
-import { isOpen, orderStatus } from '../../utils/orderStatus.js'
+import { isOpen, isTooFar, orderStatus } from '../../utils/orderStatus.js'
+import { useRestaurant } from '../../context/RestaurantContext.jsx'
 import ExportOrders from '../../components/ExportOrders.jsx'
 import Icon from '../../components/Icon.jsx'
 import {
@@ -38,6 +39,7 @@ export default function AdminOrders() {
   const [range, setRange] = useState('today')
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const { restaurant } = useRestaurant()
   const [now, setNow] = useState(() => Date.now())
 
   // Keep "5 min ago" labels fresh.
@@ -163,6 +165,16 @@ export default function AdminOrders() {
                   </td>
                   <td className="nowrap small">
                     {o.scheduledFor ? <span className="sched-chip">Scheduled · {formatClock(o.scheduledFor)}</span> : 'Now'}
+                    {o.distanceKm != null && (
+                      <div>
+                        <span
+                          className={`dist-chip ${isTooFar(o, restaurant.serviceRadiusKm) ? 'far' : ''}`}
+                          title={isTooFar(o, restaurant.serviceRadiusKm) ? `Outside your ${restaurant.serviceRadiusKm} km delivery area` : 'Distance from the kitchen'}
+                        >
+                          {o.distanceKm} km{isTooFar(o, restaurant.serviceRadiusKm) ? ' · too far' : ''}
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="nowrap small"><PaymentBadge order={o} /></td>
                   <td className="num nowrap"><strong>{formatPrice(o.bill.grandTotal)}</strong></td>

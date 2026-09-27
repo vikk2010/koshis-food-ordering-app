@@ -20,25 +20,30 @@ export default function OfferCards({ coupons }) {
       <div className="section-head">
         <div>
           <h1 id="offers-title">Offers for you</h1>
-          <p className="muted">Apply a code at checkout</p>
+          <p className="muted">Tap a card to copy its code, then apply it at checkout</p>
         </div>
       </div>
       <div className={`offer-grid n${Math.min(coupons.length, 3)}`}>
         {coupons.map((c, i) => (
-          <article key={c.id} className={`offer-card theme-${offerTheme(c, i)}`}>
-            <div className="offer-card-top">
+          <button
+            key={c.id}
+            type="button"
+            className={`offer-card theme-${offerTheme(c, i)} ${copied === c.code ? 'copied' : ''}`}
+            onClick={() => copy(c.code)}
+            aria-label={`${couponHeadline(c)}, ${couponTerms(c)}. Copy code ${c.code}`}
+          >
+            <span className="offer-card-top">
               {c.title && <span className="offer-title">{c.title}</span>}
-              <h2 className="offer-headline">{couponHeadline(c)}</h2>
-              <p className="offer-terms">{couponTerms(c)}</p>
-            </div>
-            <div className="offer-card-bottom">
-              <button type="button" className="offer-code" onClick={() => copy(c.code)} aria-label={`Copy code ${c.code}`}>
+              <span className="offer-headline">{couponHeadline(c)}</span>
+              <span className="offer-terms">{couponTerms(c)}</span>
+            </span>
+            <span className="offer-card-bottom">
+              <span className="offer-code">
                 <span>{c.code}</span>
-                <span className="offer-copy">{copied === c.code ? 'Copied ✓' : 'Copy'}</span>
-              </button>
-              <a className="offer-cta" href="#menu">Order now →</a>
-            </div>
-          </article>
+                <span className="offer-copy">{copied === c.code ? 'Copied ✓' : 'Tap to copy'}</span>
+              </span>
+            </span>
+          </button>
         ))}
       </div>
     </section>

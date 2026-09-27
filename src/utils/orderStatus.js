@@ -45,4 +45,8 @@ export function nextAction(o, now = Date.now()) {
   return null
 }
 
-export const cancelUpdates = (o, now = Date.now()) => moveTo(o, 'cancelled', now)
+/** Cancel patch. reason: 'too_far' (outside the delivery area) or 'restaurant' (any other reason). */
+export const cancelUpdates = (o, reason = 'restaurant', now = Date.now()) => ({ ...moveTo(o, 'cancelled', now), cancelReason: reason })
+
+/** True when the order's address is further than the delivery area (current setting, else the one at order time). */
+export const isTooFar = (o, radiusKm) => o.distanceKm != null && o.distanceKm > (radiusKm ?? o.serviceRadiusKm ?? 20)
