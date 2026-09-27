@@ -6,13 +6,16 @@ import Icon from '../../components/Icon.jsx'
 import { formatPrice } from '../../utils/bill.js'
 import { formatAddress } from '../../utils/address.js'
 import OrderActions, { PaymentBadge, StatusBadge } from '../../components/OrderActions.jsx'
-import { STAGES, STATUS_LABELS, orderStatus } from '../../utils/orderStatus.js'
+import { STAGES, STATUS_LABELS, isTooFar, orderStatus } from '../../utils/orderStatus.js'
+import { useRestaurant } from '../../context/RestaurantContext.jsx'
+import { mapsLink, mapsSearchLink } from '../../utils/geo.js'
 import { customerName, formatClock, formatDateTime, formatPhone, itemCount } from '../../utils/orders.js'
 
 // Full details of one order for the kitchen, with a printable ticket.
 export default function AdminOrderDetail() {
   const { id } = useParams()
   const { getOrder, loading, markSeen } = useAdminOrders()
+  const { restaurant } = useRestaurant()
   const order = getOrder(id)
 
   // Opening a new order counts as seeing it.
@@ -78,6 +81,27 @@ export default function AdminOrderDetail() {
             <div className="address-line">
               <Icon name="pin" size={18} />
               <span><strong>{address.label}</strong> · {formatAddress(address)}</span>
+            </div>
+            <div className={`distance-line ${isTooFar(order, restaurant.serviceRadiusKm) ? 'far' : ''}`}>
+              {order.distanceKm != null ? (
+                <span>
+                  <strong>{order.distanceKm} km</strong> from the kitchen (straight line)
+                  {isTooFar(order, restaurant.serviceRadiusKm) && ` — outside your ${restaurant.serviceRadiusKm} km delivery area`}
+                  {address.location?.source === 'address' && ' · located from the address, so approximate'}
+                </span>
+              ) : (
+                <span className="muted">Distance unknown — {restaurant.location ? 'the customer’s address couldn’t be found on the map' : 'set your kitchen location in Restaurant Details'}.</span>
+              )}
+              <a
+                className="text-link small no-print"
+                target="_blank"
+                rel="noreferrer"
+                href={address.location
+                  ? mapsLink(address.location, restaurant.location || undefined)
+                  : mapsSearchLink(formatAddress(address))}
+              >
+                {address.location && restaurant.location ? 'Route in Google Maps ↗' : 'Open in Google Maps ↗'}
+              </a>
             </div>
           </div>
         </div>

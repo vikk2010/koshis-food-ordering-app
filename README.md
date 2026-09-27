@@ -52,6 +52,18 @@ npm run build    # production build in dist/
     any date range (today, yesterday, last 7 / 30 days, this or last month, custom dates).
   - **Export orders**: on Orders and Reports, download every order in a date range as a CSV
     spreadsheet (opens in Excel / Google Sheets).
+  - **Delivery area** (Restaurant Details → Kitchen location & delivery area): pin the kitchen (use your
+    current location, find it from the address, or paste coordinates / a full Google Maps link) and set
+    "Deliver up to N km" (default 20). Customers' addresses are pinned from their phone's location or looked
+    up from the address text (OpenStreetMap Nominatim, free). Each order records its straight-line distance;
+    orders outside the area are flagged on the Orders page with a **Cancel — too far** button (also on the order
+    page, at any stage — even if it was marked delivered by mistake), which shows the customer an apology.
+    Checkout won't let customers place an order for an address outside the area.
+  - **Pincode autofill** (customer address form and Restaurant Details): typing a 6-digit pincode fills in
+    city, state and — when it's clear-cut — the area, and suggests the pincode's localities for the Area field.
+    Uses India Post's free pincode API plus OpenStreetMap (no keys). It never overwrites something the person
+    typed, and shows "Pincode not found" for invalid codes. The pincode's centre is also the fallback map
+    position for delivery distance when an address can't be located more precisely.
   - **Order status** (`/admin/orders` and each order page): every order starts as *Waiting to accept*.
     UPI orders: **Payment received** (after checking your UPI app) → **Start preparing** →
     **Out for delivery** → **Mark delivered**. Cash on delivery skips the payment step. Orders can

@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { updateOrder } from '../services/orderStore.js'
 import { formatPrice } from '../utils/bill.js'
-import { STATUS_LABELS, cancelUpdates, isOpen, needsPayment, nextAction, orderStatus, paymentText } from '../utils/orderStatus.js'
+import { customerName, formatClock } from '../utils/orders.js'
+import { STATUS_LABELS, cancelUpdates, isOpen, isTooFar, isUpi, needsPayment, nextAction, orderStatus, paymentText } from '../utils/orderStatus.js'
+import { useRestaurant } from '../context/RestaurantContext.jsx'
 
 /** Coloured chip with the order's current status. */
 export function StatusBadge({ order }) {
@@ -22,8 +24,12 @@ export function PaymentBadge({ order }) {
 export default function OrderActions({ order, compact = false }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false) // false | 'restaurant' | 'too_far'
+  const { restaurant } = useRestaurant()
   const action = nextAction(order)
+  const status = orderStatus(order)
+  // Too-far orders can be cancelled at any stage — even if one was moved along by mistake.
+  const tooFar = status !== 'cancelled' && isTooFar(order, restaurant.serviceRadiusKm)
 
   const run = async (updates, e) => {
     e?.stopPropagation()
@@ -40,6 +46,28 @@ export default function OrderActions({ order, compact = false }) {
   }
 
   if (compact) {
+    // Outside the delivery area: offer the cancel here instead of moving the order along.
+    if (tooFar) {
+      return (
+        <span className="order-actions compact" onClick={(e) => e.stopPropagation()}>
+          {confirmCancel === 'too_far' ? (
+            <span className="compact-confirm">
+              <span className="small">Cancel as too far?</span>
+              <button type="button" className="btn small danger" disabled={busy} onClick={(e) => run(cancelUpdates(order, 'too_far'), e)}>
+                {busy ? 'Saving…' : 'Yes'}
+              </button>
+              <button type="button" className="btn small secondary" disabled={busy} onClick={() => setConfirmCancel(false)}>No</button>
+            </span>
+          ) : (
+            <button type="button" className="btn small danger" onClick={() => setConfirmCancel('too_far')}
+              title={`${order.distanceKm} km away — outside your ${restaurant.serviceRadiusKm} km delivery area`}>
+              Cancel — too far
+            </button>
+          )}
+          {error && <span className="error small">{error}</span>}
+        </span>
+      )
+    }
     if (!action) return null
     return (
       <span className="order-actions compact" onClick={(e) => e.stopPropagation()}>
@@ -57,14 +85,33 @@ export default function OrderActions({ order, compact = false }) {
     )
   }
 
-  const status = orderStatus(order)
   return (
     <div className="order-actions">
+      {tooFar && (
+        <div className="too-far">
+          <strong>📍 {order.distanceKm} km away — outside your {restaurant.serviceRadiusKm} km delivery area</strong>
+          <span className="small">
+            {status === 'delivered' ? 'This order was marked delivered, but it is outside your area. ' : ''}
+            You can cancel it — the customer will see that their address is too far to deliver to
+            {isUpi(order) && order.paymentStatus === 'paid' ? ' and that their payment will be refunded' : ''}. To accept
+            orders from this far, increase the delivery area in Restaurant Details.
+          </span>
+          {confirmCancel === 'too_far' ? (
+            <div className="cancel-confirm">
+              <span className="small">Cancel as too far to deliver?</span>
+              <button type="button" className="btn small danger" disabled={busy} onClick={(e) => run(cancelUpdates(order, 'too_far'), e)}>Yes, cancel</button>
+              <button type="button" className="btn small secondary" onClick={() => setConfirmCancel(false)}>Keep</button>
+            </div>
+          ) : (
+            <button type="button" className="btn small danger" onClick={() => setConfirmCancel('too_far')}>Cancel — too far to deliver</button>
+          )}
+        </div>
+      )}
       {action?.kind === 'payment' && (
         <p className="small" style={{ margin: 0 }}>
-          Check your UPI app for <strong>{formatPrice(order.bill.grandTotal)}</strong>
-          {order.upi?.id && <> to <code>{order.upi.id}</code></>} with the note <strong>Order {order.number}</strong>.
-          Once it has arrived, confirm it here to start preparing.
+          Check your UPI app for a payment of <strong>{formatPrice(order.bill.grandTotal)}</strong>
+          {order.upi?.id && <> to <code>{order.upi.id}</code></>} from <strong>{customerName(order) || 'the customer'}</strong>,
+          made after {formatClock(order.placedAt)}. Once it has arrived, confirm it here to start preparing.
         </p>
       )}
       {status === 'pending' && !needsPayment(order) && (
@@ -78,14 +125,16 @@ export default function OrderActions({ order, compact = false }) {
         </button>
       )}
       {isOpen(order) && (
-        confirmCancel ? (
+        confirmCancel === 'restaurant' ? (
           <div className="cancel-confirm">
             <span className="small">Cancel this order?</span>
-            <button type="button" className="btn small danger" disabled={busy} onClick={(e) => run(cancelUpdates(order), e)}>Yes, cancel</button>
+            <button type="button" className="btn small danger" disabled={busy} onClick={(e) => run(cancelUpdates(order, 'restaurant'), e)}>Yes, cancel</button>
             <button type="button" className="btn small secondary" onClick={() => setConfirmCancel(false)}>Keep</button>
           </div>
         ) : (
-          <button type="button" className="link-btn small danger-link" onClick={() => setConfirmCancel(true)}>Cancel order</button>
+          <button type="button" className="link-btn small danger-link" onClick={() => setConfirmCancel('restaurant')}>
+            {tooFar ? 'Cancel for another reason' : 'Cancel order'}
+          </button>
         )
       )}
       {error && <p className="error small">{error}</p>}

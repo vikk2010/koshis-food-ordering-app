@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRestaurant } from '../../context/RestaurantContext.jsx'
 import { DAYS } from '../../data/defaultRestaurant.js'
 import { fileToResizedDataUrl } from '../../utils/image.js'
 import { hoursLabel } from '../../utils/hours.js'
 import { UPI_ID_RE, upiPayLink } from '../../utils/qr.js'
 import QrCode from '../../components/QrCode.jsx'
+import Icon from '../../components/Icon.jsx'
+import { PinStatus } from '../../components/AddressForm.jsx'
+import usePincodeAutofill, { makeAutofill } from '../../hooks/usePincodeAutofill.js'
+import { currentLocation, formatCoords, geocodeAddress, mapsLink, parseCoords } from '../../utils/geo.js'
 
 const PHONE_RE = /^[6-9]\d{9}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -22,6 +26,7 @@ function validate(f) {
   if (f.fssai && !FSSAI_RE.test(f.fssai)) return 'FSSAI licence number must be 14 digits'
   if (f.gstin && !GSTIN_RE.test(f.gstin)) return 'GSTIN should look like 27ABCDE1234F1Z5'
   if (f.upiId && !UPI_ID_RE.test(f.upiId)) return 'UPI ID should look like koshis@okhdfcbank'
+  if (!(f.serviceRadiusKm >= 1 && f.serviceRadiusKm <= 100)) return 'Delivery area: enter a distance from 1 to 100 km'
   for (const d of DAYS) {
     const h = f.hours[d.key]
     if (h.open && h.from === h.to) return `${d.label}: opening and closing time can't be the same`
@@ -41,6 +46,22 @@ function RestaurantForm() {
   const [form, setForm] = useState(restaurant)
   const [msg, setMsg] = useState({ text: '', error: false })
   const [saving, setSaving] = useState(false)
+  const [coordsText, setCoordsText] = useState(() => formatCoords(restaurant.location))
+  const [locBusy, setLocBusy] = useState('')
+  const fill = useRef(makeAutofill()).current
+
+  // Typing the pincode fills in city, state and (when clear-cut) the area — never over what you typed.
+  const pin = usePincodeAutofill(form.address.pincode, (info) =>
+    setForm((f) => ({
+      ...f,
+      address: {
+        ...f.address,
+        city: fill(f.address.city, 'city', info.city),
+        state: fill(f.address.state, 'state', info.state),
+        area: fill(f.address.area, 'area', info.area),
+      },
+    })),
+  )
 
   const dirty = JSON.stringify(form) !== JSON.stringify(restaurant)
 
@@ -81,6 +102,46 @@ function RestaurantForm() {
     } catch (err) {
       setMsg({ text: err.message, error: true })
     }
+  }
+
+  // ----- Kitchen location (for delivery distance) -----
+  const pinKitchen = (loc, note) => {
+    patch({ location: { lat: loc.lat, lng: loc.lng } })
+    setCoordsText(formatCoords(loc))
+    if (note) setMsg({ text: note, error: false })
+  }
+  const onCoordsChange = (e) => {
+    setCoordsText(e.target.value)
+    const loc = parseCoords(e.target.value)
+    if (loc) patch({ location: loc })
+    else if (!e.target.value.trim()) patch({ location: null })
+  }
+  const onMapUrlChange = (e) => {
+    setAddr('mapUrl')(e)
+    const loc = parseCoords(e.target.value)
+    if (loc) {
+      setForm((f) => ({ ...f, location: loc }))
+      setCoordsText(formatCoords(loc))
+    }
+  }
+  const useMyLocation = async () => {
+    setLocBusy('gps')
+    try {
+      pinKitchen(await currentLocation(), 'Kitchen pinned at your current location — check it on the map, then save.')
+    } catch (err) {
+      setMsg({ text: err.message, error: true })
+    } finally {
+      setLocBusy('')
+    }
+  }
+  const findFromAddress = async () => {
+    const a = form.address
+    if (!a.area && !a.pincode && !a.city) return setMsg({ text: 'Fill in the area, city or pincode first.', error: true })
+    setLocBusy('address')
+    const loc = await geocodeAddress({ landmark: a.line1, area: a.area, city: a.city, state: a.state, pincode: a.pincode })
+    setLocBusy('')
+    if (loc) pinKitchen(loc, 'Found from your address — this is approximate. Check it on the map, then save.')
+    else setMsg({ text: "Couldn't find that address on the map. Try 'Use my current location' or paste coordinates.", error: true })
   }
 
   // The "accepting orders" switch saves immediately — it's the admin's emergency stop.
@@ -215,8 +276,18 @@ function RestaurantForm() {
             <input value={form.address.line1} onChange={setAddr('line1')} placeholder="Shop 4, Sai Complex, MG Road" />
           </label>
           <label>
+            Pincode
+            <input inputMode="numeric" value={form.address.pincode} onChange={setAddr('pincode', digits(6))} placeholder="560038" />
+            <PinStatus pin={pin} />
+          </label>
+          <label>
             Area / locality
-            <input value={form.address.area} onChange={setAddr('area')} placeholder="Indiranagar" />
+            <input value={form.address.area} onChange={setAddr('area')} placeholder="Indiranagar" list="restaurant-pin-areas" />
+            {pin.info?.areas?.length > 0 && (
+              <datalist id="restaurant-pin-areas">
+                {pin.info.areas.map((a) => <option key={a} value={a} />)}
+              </datalist>
+            )}
           </label>
           <label>
             City
@@ -226,14 +297,60 @@ function RestaurantForm() {
             State
             <input value={form.address.state} onChange={setAddr('state')} placeholder="Karnataka" />
           </label>
-          <label>
-            Pincode
-            <input inputMode="numeric" value={form.address.pincode} onChange={setAddr('pincode', digits(6))} placeholder="560038" />
-          </label>
           <label className="span-2">
             Google Maps link
-            <input type="url" value={form.address.mapUrl} onChange={setAddr('mapUrl')} placeholder="https://maps.app.goo.gl/…" />
+            <input type="url" value={form.address.mapUrl} onChange={onMapUrlChange} placeholder="https://maps.app.goo.gl/…" />
+            <span className="hint">
+              Open Google Maps → search your restaurant → tap <strong>Share</strong> → <strong>Copy link</strong>, then paste it
+              here. Customers can open it from the footer.
+            </span>
           </label>
+        </div>
+
+        <div className="kitchen-location">
+          <h3>Kitchen location & delivery area</h3>
+          <p className="muted small">Used to work out how far each customer is from your kitchen.</p>
+          <div className="settings-grid">
+            <label>
+              Kitchen coordinates
+              <input value={coordsText} onChange={onCoordsChange} placeholder="12.97160, 77.59460" inputMode="decimal" />
+              <span className="hint">
+                In Google Maps, right-click your restaurant (long-press on a phone) — the numbers shown at the top are the
+                coordinates; click them to copy.
+              </span>
+            </label>
+            <label>
+              Deliver up to
+              <div className="unit-input">
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="1"
+                  value={form.serviceRadiusKm}
+                  onChange={(e) => patch({ serviceRadiusKm: e.target.value === '' ? '' : Number(e.target.value) })}
+                />
+                <span>km</span>
+              </div>
+              <span className="hint">Orders from further away are flagged so you can cancel them. Increase it to serve a bigger area.</span>
+            </label>
+          </div>
+          <div className="card-links location-actions">
+            <button type="button" className="btn small secondary" onClick={useMyLocation} disabled={Boolean(locBusy)}>
+              <Icon name="pin" size={16} /> {locBusy === 'gps' ? 'Locating…' : 'Use my current location'}
+            </button>
+            <button type="button" className="btn small secondary" onClick={findFromAddress} disabled={Boolean(locBusy)}>
+              {locBusy === 'address' ? 'Searching…' : 'Find from address'}
+            </button>
+            {form.location && (
+              <a className="text-link" href={mapsLink(form.location)} target="_blank" rel="noreferrer">Check on Google Maps ↗</a>
+            )}
+          </div>
+          <p className={`location-status ${form.location ? 'ok' : 'warn'}`}>
+            {form.location
+              ? `✓ Kitchen pinned at ${formatCoords(form.location)} · delivering within ${form.serviceRadiusKm || '?'} km`
+              : 'Kitchen location not set yet — until it is, orders can’t be checked for distance.'}
+          </p>
         </div>
       </div>
 

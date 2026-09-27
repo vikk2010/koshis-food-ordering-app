@@ -132,7 +132,15 @@ export default function TrackOrder() {
             {cancelled ? (
               <div className="waiting-note cancelled">
                 <p>
-                  The restaurant cancelled this order.
+                  {order.cancelReason === 'too_far' ? (
+                    <>
+                      <strong>Sorry, we can’t deliver to this address.</strong> It’s about {order.distanceKm} km from our
+                      kitchen — too far for us to deliver right now (we deliver within {restaurant.serviceRadiusKm} km).
+                      We apologise for the inconvenience. You’re welcome to order again for an address closer to us.
+                    </>
+                  ) : (
+                    'The restaurant cancelled this order.'
+                  )}
                   {isUpi(order) && order.paymentStatus === 'paid' && ' Your payment will be refunded.'}
                   {phone && <> For help, call <a href={`tel:+91${phone}`}>+91 {phone}</a>.</>}
                 </p>
