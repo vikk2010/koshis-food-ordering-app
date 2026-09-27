@@ -78,7 +78,7 @@ export default function TrackOrder() {
       <div className="checkout-grid">
         <div className="checkout-main">
           {status === 'pending' && unpaid && order.upi?.id && (
-            <UpiPayment upiId={order.upi.id} name={order.upi.name} amount={bill.grandTotal} note={`Order ${order.number}`} />
+            <UpiPayment upiId={order.upi.id} name={order.upi.name} amount={bill.grandTotal} note={`Order ${order.number}`} merchant={Boolean(order.upi.merchant)} />
           )}
 
           <div className="card">

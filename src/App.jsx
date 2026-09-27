@@ -15,6 +15,7 @@ import AdminRestaurant from './pages/admin/AdminRestaurant.jsx'
 import AdminSections from './pages/admin/AdminSections.jsx'
 import AdminOrders from './pages/admin/AdminOrders.jsx'
 import AdminOrderDetail from './pages/admin/AdminOrderDetail.jsx'
+import AdminReports from './pages/admin/AdminReports.jsx'
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/admin/sections" element={<AdminSections />} />
             <Route path="/admin/orders" element={<AdminOrders />} />
             <Route path="/admin/orders/:id" element={<AdminOrderDetail />} />
+            <Route path="/admin/reports" element={<AdminReports />} />
             <Route path="/admin/dishes/new" element={<DishForm />} />
             <Route path="/admin/dishes/:id/edit" element={<DishForm />} />
           </Route>

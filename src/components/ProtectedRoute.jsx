@@ -3,6 +3,7 @@ import { Navigate, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { AdminOrdersProvider, useAdminOrders } from '../context/AdminOrdersContext.jsx'
 import { initializeCatalog } from '../services/catalogStore.js'
+import Icon from './Icon.jsx'
 
 // Guards admin routes, keeps the live order feed running and renders the admin section menu.
 export default function ProtectedRoute() {
@@ -58,19 +59,34 @@ function AdminNav() {
   const { newCount } = useAdminOrders()
   return (
     <div className="admin-nav no-print">
-      <nav className="tabs">
-        <NavLink to="/admin/orders" className="tab">
-          Orders{newCount > 0 && <span className="badge">{newCount}</span>}
-        </NavLink>
-        <NavLink to="/admin" end className="tab">Dishes</NavLink>
-        <NavLink to="/admin/sections" className="tab">Menu Sections</NavLink>
-        <NavLink to="/admin/restaurant" className="tab">Restaurant Details</NavLink>
-        <NavLink to="/admin/settings" className="tab">Charges & Coupons</NavLink>
-      </nav>
-      <div className="admin-user">
-        {adminEmail && <span className="muted small">{adminEmail}</span>}
-        <button className="btn small secondary" onClick={logout}>Admin logout</button>
+      {/* Day-to-day: orders, reports, charges */}
+      <div className="admin-nav-top">
+        <nav className="admin-primary" aria-label="Admin">
+          <NavLink to="/admin/orders" className="admin-primary-link">
+            <Icon name="receipt" size={20} />
+            <span>Orders</span>
+            {newCount > 0 && <span className="badge">{newCount}</span>}
+          </NavLink>
+          <NavLink to="/admin/reports" className="admin-primary-link">
+            <Icon name="chart" size={20} />
+            <span>Reports</span>
+          </NavLink>
+          <NavLink to="/admin/settings" className="admin-primary-link">
+            <Icon name="settings" size={20} />
+            <span>Charges & Coupons</span>
+          </NavLink>
+        </nav>
+        <div className="admin-user">
+          {adminEmail && <span className="muted small">{adminEmail}</span>}
+          <button className="btn small secondary" onClick={logout}>Admin logout</button>
+        </div>
       </div>
+      {/* Setup: menu and restaurant */}
+      <nav className="tabs admin-secondary" aria-label="Menu and restaurant">
+        <NavLink to="/admin" end className="tab"><Icon name="utensils" size={16} /> Dishes</NavLink>
+        <NavLink to="/admin/sections" className="tab"><Icon name="list" size={16} /> Menu Sections</NavLink>
+        <NavLink to="/admin/restaurant" className="tab"><Icon name="store" size={16} /> Restaurant Details</NavLink>
+      </nav>
     </div>
   )
 }

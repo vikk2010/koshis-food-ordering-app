@@ -5,6 +5,8 @@ import { ordersAreShared } from '../../services/orderStore.js'
 import { formatPrice } from '../../utils/bill.js'
 import OrderActions, { PaymentBadge, StatusBadge } from '../../components/OrderActions.jsx'
 import { isOpen, orderStatus } from '../../utils/orderStatus.js'
+import ExportOrders from '../../components/ExportOrders.jsx'
+import Icon from '../../components/Icon.jsx'
 import {
   customerName, formatClock, formatDate, formatPhone, itemCount, itemsSummary, startOfDay, timeAgo,
 } from '../../utils/orders.js'
@@ -66,9 +68,20 @@ export default function AdminOrders() {
             New orders appear here instantly{ordersAreShared ? '' : ' (demo mode: only orders placed in this browser)'}.
           </p>
         </div>
-        {newCount > 0 && (
-          <button className="btn secondary" onClick={markAllSeen}>Mark {newCount} as seen</button>
-        )}
+        <div className="page-actions">
+          {newCount > 0 && (
+            <button className="btn secondary" onClick={markAllSeen}>Mark {newCount} as seen</button>
+          )}
+          <Link className="btn secondary" to="/admin/reports"><Icon name="chart" size={16} /> Reports</Link>
+        </div>
+      </div>
+
+      <div className="card export-card">
+        <div>
+          <strong>Export orders</strong>
+          <p className="muted small" style={{ margin: 0 }}>Download a spreadsheet of every order in a date range (opens in Excel or Google Sheets).</p>
+        </div>
+        <ExportOrders />
       </div>
 
       <NotificationCard

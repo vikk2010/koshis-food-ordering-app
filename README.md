@@ -47,6 +47,11 @@ npm run build    # production build in dist/
     The footer shows these details; outside opening hours (or when orders are paused) the menu
     shows a closed banner and checkout only allows a scheduled slot inside opening hours.
     Add the restaurant's **UPI ID** here to offer "Pay by UPI QR code" at checkout.
+  - **Reports** (`/admin/reports`): sales by day, most ordered dishes, busiest hours and days,
+    repeat customers, payment methods, order status, coupons used and dishes nobody ordered, for
+    any date range (today, yesterday, last 7 / 30 days, this or last month, custom dates).
+  - **Export orders**: on Orders and Reports, download every order in a date range as a CSV
+    spreadsheet (opens in Excel / Google Sheets).
   - **Order status** (`/admin/orders` and each order page): every order starts as *Waiting to accept*.
     UPI orders: **Payment received** (after checking your UPI app) → **Start preparing** →
     **Out for delivery** → **Mark delivered**. Cash on delivery skips the payment step. Orders can

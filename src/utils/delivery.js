@@ -14,7 +14,7 @@ export function deliverySlots(leadMin = 60, count = 8, now = Date.now()) {
 // Payment happens outside the app: the customer scans the restaurant's UPI QR code (shown after
 // placing the order) or pays cash at the door. The admin confirms UPI payments by hand.
 export const PAYMENT_METHODS = [
-  { key: 'upi', label: 'Pay by UPI QR code', hint: 'Scan with GPay, PhonePe, Paytm or any UPI app after placing the order' },
+  { key: 'upi', label: 'Pay by UPI', hint: 'Pay with GPay, PhonePe, Paytm or any UPI app after placing the order' },
   { key: 'cod', label: 'Cash on delivery', hint: 'Pay the rider in cash when your food arrives' },
 ]
 

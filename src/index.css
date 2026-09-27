@@ -358,7 +358,64 @@ main.container:has(.checkout-bar) { padding-bottom: 112px; }
 .address-line { display: flex; gap: 10px; color: var(--muted); font-size: 0.875rem; }
 
 /* ---------- Admin ---------- */
-.admin-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.admin-nav { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+.admin-nav-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.admin-primary { display: flex; gap: 6px; padding: 6px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; flex-wrap: wrap; }
+.admin-primary-link { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 11px; text-decoration: none; color: var(--text); font-weight: 600; font-size: 0.95rem; }
+.admin-primary-link:hover { background: var(--bg); }
+.admin-primary-link.active { background: var(--primary); color: #fff; }
+.admin-primary-link.active .badge { background: #fff; color: var(--primary); }
+.admin-primary-link .badge { margin-left: 0; }
+.admin-secondary { margin: 0; padding-top: 12px; border-top: 1px solid var(--border); }
+.admin-secondary .tab { display: inline-flex; align-items: center; gap: 6px; }
+.page-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.page-actions .btn, .export-orders .btn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.export-card { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 20px; }
+.export-orders { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.range-picker { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.range-picker select, .range-picker input { padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; font-size: 0.9rem; }
+/* ---------- Reports ---------- */
+.report-filters { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.reports-body { display: flex; flex-direction: column; gap: 16px; transition: opacity 0.2s; }
+.reports-body.is-loading { opacity: 0.5; }
+.stat-row.report-stats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin: 0; }
+.report-stats .stat { display: flex; flex-direction: column; gap: 4px; }
+.report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.report-grid.three { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.report-grid > .card, .reports-body > .card { min-width: 0; }
+.report-sub { font-size: 0.95rem; margin: 20px 0 12px; }
+.report-foot { margin: 12px 0 0; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.card-head h2 { margin: 0; }
+.repeat-badge { margin-left: 8px; font-size: 0.68rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); vertical-align: middle; }
+.chart { position: relative; }
+.chart-svg { display: block; max-width: 100%; overflow: visible; }
+.chart-grid { stroke: var(--border); stroke-width: 1; }
+.chart-tick { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
+.chart-bar { fill: var(--primary); }
+.chart-hit { fill: transparent; }
+.chart-col { outline: none; cursor: default; }
+.chart-col.active .chart-bar, .chart-col:focus-visible .chart-bar { fill: var(--primary-dark); }
+.chart-col.active .chart-hit { fill: rgb(31 26 23 / 0.04); }
+.chart-tip { position: absolute; top: 0; transform: translateX(-50%); background: var(--dark); color: #fff; border-radius: 10px; padding: 8px 10px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 2px; pointer-events: none; white-space: nowrap; box-shadow: var(--shadow); z-index: 2; }
+.chart-tip strong { font-size: 0.95rem; }
+.chart-tip span { color: #d9cfc7; }
+.bar-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.bar-list li { display: flex; flex-direction: column; gap: 6px; }
+.bar-list-head { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9rem; }
+.bar-list-label { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.bar-list-value { font-weight: 600; white-space: nowrap; }
+.bar-track { height: 8px; border-radius: 4px; background: var(--primary-soft); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; background: var(--primary); }
+.chips a.chip { text-decoration: none; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 560px) {
+  .admin-primary { width: 100%; }
+  .admin-primary-link { flex: 1; flex-direction: column; justify-content: center; gap: 4px; padding: 8px 4px; font-size: 0.78rem; text-align: center; line-height: 1.2; position: relative; }
+  .admin-primary-link .badge { position: absolute; top: 4px; right: 8px; }
+  .admin-nav-top { gap: 8px; }
+  .admin-user { width: 100%; justify-content: flex-end; }
+  .report-grid, .report-grid.three { grid-template-columns: 1fr; }
+}
 .admin-nav .tabs { margin: 0; }
 a.tab { text-decoration: none; color: var(--text); }
 a.tab.active { color: #fff; }
@@ -422,11 +479,26 @@ a.tab.active { color: #fff; }
 .upi-id-row code { font-size: 0.875rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; overflow-wrap: anywhere; }
 .upi-app-link { align-self: flex-start; margin-top: 4px; text-decoration: none; }
 .qr-code { display: block; max-width: 100%; height: auto; }
+.upi-pay.phone .upi-pay-info { gap: 12px; width: 100%; }
+.upi-pay.phone .upi-app-link { align-self: stretch; text-align: center; margin: 0; }
+.upi-steps { list-style: none; counter-reset: step; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.upi-steps li { counter-increment: step; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); text-align: left; }
+.upi-steps li::before { content: counter(step); flex-shrink: 0; width: 24px; height: 24px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 0.8rem; font-weight: 700; display: grid; place-items: center; }
+.upi-steps li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.upi-steps code { font-size: 0.95rem; font-weight: 600; overflow-wrap: anywhere; color: var(--text); }
+.upi-steps .btn { flex-shrink: 0; }
+.upi-amount { font-family: var(--font-heading); font-size: 1.25rem; }
+.upi-qr-more summary { cursor: pointer; color: var(--primary); font-weight: 600; font-size: 0.875rem; }
+.upi-qr-more .upi-pay-qr { display: inline-block; margin-top: 12px; }
+.upi-merchant { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; }
+.upi-merchant input { margin-top: 3px; }
+.upi-merchant .hint { display: block; margin-top: 2px; }
 .upi-settings { display: flex; gap: 24px; align-items: flex-start; }
 .upi-settings .settings-grid { flex: 1; }
 .upi-preview { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
 @media (max-width: 560px) {
   .upi-pay { flex-direction: column; align-items: stretch; text-align: center; }
+  .upi-pay.phone { text-align: left; }
   .upi-pay-qr { align-self: center; }
   .upi-id-row, .upi-app-link { justify-content: center; align-self: center; }
   .upi-settings { flex-direction: column; }
