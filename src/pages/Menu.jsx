@@ -8,6 +8,7 @@ import CheckoutBar from '../components/CheckoutBar.jsx'
 import OfferCards from '../components/OfferCards.jsx'
 import Icon from '../components/Icon.jsx'
 import HeroIllustration from '../components/HeroIllustration.jsx'
+import ChefSlider from '../components/ChefSlider.jsx'
 import VegToggle, { matchesFoodType } from '../components/VegToggle.jsx'
 
 // "01 · Home / Menu" screen from Figma.
@@ -38,6 +39,10 @@ export default function Menu() {
   const offer = activeCoupons[0]
   // Only offer section filters that have dishes (in the admin's order).
   const usedSections = sections.filter((s) => dishes.some((d) => d.sectionId === s.id))
+  // Banner slider: the chef's specials (falls back to bestsellers) that are in stock and have a photo.
+  const withPhoto = dishes.filter((d) => d.available && d.image)
+  const chefs = withPhoto.filter((d) => d.tags?.includes('chef'))
+  const featured = chefs.length ? chefs : withPhoto.filter((d) => d.tags?.includes('bestseller'))
 
   return (
     <section>
@@ -46,19 +51,20 @@ export default function Menu() {
           <Icon name="clock" size={18} /> {status.message}
         </div>
       )}
-      <div className="hero">
+      <div className="hero hero-banner">
+        <div className="hero-glow" aria-hidden="true" />
         <div className="hero-copy">
           <span className="pill-badge">
             <Icon name="leaf" size={14} /> Fresh from {restaurant.name}
           </span>
-          <h1>{restaurant.tagline || 'Homestyle food, cooked fresh and delivered hot.'}</h1>
+          <h1><Headline text={restaurant.tagline || 'Homestyle food, cooked fresh and delivered hot.'} /></h1>
           <p className="hero-lead">
             Biryanis, curries, thalis and more — cooked every day in our cloud kitchen and at your door in
             about {settings.deliveryTimeMin} minutes.
           </p>
           <div className="hero-ctas">
             <a className="btn large" href="#menu">Order now</a>
-            {offer && <a className="btn secondary large" href="#offers">View offers</a>}
+            {offer && <a className="btn large hero-ghost" href="#offers">View offers</a>}
           </div>
           <div className="hero-stats">
             <div><strong>{settings.deliveryTimeMin} min</strong><span>avg. delivery</span></div>
@@ -66,12 +72,18 @@ export default function Menu() {
             <div><strong>100%</strong><span>freshly cooked</span></div>
           </div>
         </div>
-        <div className="hero-art">
-          <HeroIllustration />
-          <span className="hero-note">
-            <Icon name="clock" /> Delivery in ~{settings.deliveryTimeMin} min
-          </span>
-        </div>
+        {featured.length ? (
+          <ChefSlider dishes={featured} />
+        ) : !menuReady ? (
+          <div className="chef-slider skeleton" aria-hidden="true" />
+        ) : (
+          <div className="hero-art">
+            <HeroIllustration />
+            <span className="hero-note">
+              <Icon name="clock" /> Delivery in ~{settings.deliveryTimeMin} min
+            </span>
+          </div>
+        )}
       </div>
 
       <section className="hungry" aria-labelledby="hungry-title">
@@ -146,5 +158,16 @@ export default function Menu() {
 
       <CheckoutBar />
     </section>
+  )
+}
+
+// "Homestyle food, cooked fresh and delivered hot." → the part after the first comma is highlighted.
+function Headline({ text }) {
+  const i = text.indexOf(', ')
+  if (i < 0) return text
+  return (
+    <>
+      {text.slice(0, i + 1)} <span className="hero-accent">{text.slice(i + 2)}</span>
+    </>
   )
 }
