@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useOrders } from '../context/OrderContext.jsx'
 import { useRestaurant } from '../context/RestaurantContext.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -25,9 +25,12 @@ export default function Footer() {
   const { lastOrder } = useOrders()
   const { restaurant: r } = useRestaurant()
   const { isAdmin } = useAuth()
+  const { pathname } = useLocation()
   const address = [r.address.line1, r.address.area, r.address.city, r.address.state, r.address.pincode]
     .filter(Boolean)
     .join(', ')
+
+  if (pathname.startsWith('/rider')) return null // the rider app is a full-screen tool
 
   return (
     <footer className="site-footer">
@@ -67,11 +70,14 @@ export default function Footer() {
             {r.fssai && <> · FSSAI Lic. No. {r.fssai}</>}
             {r.gstin && <> · GSTIN {r.gstin}</>}
           </p>
-          {isAdmin ? (
-            <Link className="footer-admin" to="/admin/orders">Admin dashboard →</Link>
-          ) : (
-            <Link className="footer-admin" to="/admin/login">Admin login</Link>
-          )}
+          <div className="footer-links">
+            <Link className="footer-admin" to="/rider">Deliver with us</Link>
+            {isAdmin ? (
+              <Link className="footer-admin" to="/admin/orders">Admin dashboard →</Link>
+            ) : (
+              <Link className="footer-admin" to="/admin/login">Admin login</Link>
+            )}
+          </div>
         </div>
       </div>
     </footer>

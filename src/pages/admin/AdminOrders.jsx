@@ -5,6 +5,7 @@ import { ordersAreShared } from '../../services/orderStore.js'
 import { formatPrice } from '../../utils/bill.js'
 import OrderActions, { PaymentBadge, StatusBadge } from '../../components/OrderActions.jsx'
 import { isOpen, isTooFar, orderStatus } from '../../utils/orderStatus.js'
+import { OPEN_JOB_WARN_MIN } from '../../services/riderStore.js'
 import { useRestaurant } from '../../context/RestaurantContext.jsx'
 import ExportOrders from '../../components/ExportOrders.jsx'
 import Icon from '../../components/Icon.jsx'
@@ -32,7 +33,7 @@ const STATUS_FILTERS = [
 // "Orders" admin screen: every order with who placed it and when, live.
 export default function AdminOrders() {
   const {
-    orders, loading, error, isNew, newCount, markAllSeen,
+    orders, loading, error, isNew, newCount, markAllSeen, jobFor,
     permission, enableNotifications, sound, toggleSound, sendTest,
   } = useAdminOrders()
   const navigate = useNavigate()
@@ -175,6 +176,7 @@ export default function AdminOrders() {
                         </span>
                       </div>
                     )}
+                    <RiderChip order={o} job={jobFor(o.id)} now={now} />
                   </td>
                   <td className="nowrap small"><PaymentBadge order={o} /></td>
                   <td className="num nowrap"><strong>{formatPrice(o.bill.grandTotal)}</strong></td>
@@ -219,6 +221,28 @@ function NotificationCard({ permission, onEnable, sound, onToggleSound, onTest }
         {permission === 'default' && <button className="btn" onClick={onEnable}>Enable notifications</button>}
         <button className="btn secondary" onClick={onTest}>Send test</button>
       </div>
+    </div>
+  )
+}
+
+/** Orders table: who's delivering, or how long the order has been waiting for a rider. */
+function RiderChip({ order, job, now }) {
+  if (order.rider) {
+    return (
+      <div>
+        <span className="rider-chip" title={`${order.rider.name} · ${order.rider.bikeNumber}`}>
+          <Icon name="bike" size={13} /> {order.rider.name.split(' ')[0]}
+        </span>
+      </div>
+    )
+  }
+  if (job?.status !== 'open' || !isOpen(order)) return null
+  const min = Math.floor((now - job.openedAt) / 60000)
+  return (
+    <div>
+      <span className={`rider-chip finding ${min >= OPEN_JOB_WARN_MIN ? 'late' : ''}`}>
+        Finding rider{min >= 1 ? ` · ${min} min` : ''}
+      </span>
     </div>
   )
 }
