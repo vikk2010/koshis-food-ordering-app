@@ -17,6 +17,8 @@ import AdminSections from './pages/admin/AdminSections.jsx'
 import AdminOrders from './pages/admin/AdminOrders.jsx'
 import AdminOrderDetail from './pages/admin/AdminOrderDetail.jsx'
 import AdminReports from './pages/admin/AdminReports.jsx'
+import AdminRiders from './pages/admin/AdminRiders.jsx'
+import RiderApp from './pages/rider/RiderApp.jsx'
 
 export default function App() {
   return (
@@ -31,6 +33,7 @@ export default function App() {
             <Route path="/orders/:id" element={<TrackOrder />} />
             <Route path="/account" element={<Account />} />
           </Route>
+          <Route path="/rider" element={<RiderApp />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/admin" element={<AdminDashboard />} />
@@ -40,6 +43,7 @@ export default function App() {
             <Route path="/admin/orders" element={<AdminOrders />} />
             <Route path="/admin/orders/:id" element={<AdminOrderDetail />} />
             <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/admin/riders" element={<AdminRiders />} />
             <Route path="/admin/dishes/new" element={<DishForm />} />
             <Route path="/admin/dishes/:id/edit" element={<DishForm />} />
           </Route>

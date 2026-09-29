@@ -56,7 +56,7 @@ function AdminArea() {
 
 function AdminNav() {
   const { logout, adminEmail } = useAuth()
-  const { newCount } = useAdminOrders()
+  const { newCount, pendingRiders } = useAdminOrders()
   return (
     <div className="admin-nav no-print">
       {/* Day-to-day: orders, reports, charges */}
@@ -70,6 +70,11 @@ function AdminNav() {
           <NavLink to="/admin/reports" className="admin-primary-link">
             <Icon name="chart" size={20} />
             <span>Reports</span>
+          </NavLink>
+          <NavLink to="/admin/riders" className="admin-primary-link">
+            <Icon name="bike" size={20} />
+            <span>Riders</span>
+            {pendingRiders > 0 && <span className="badge">{pendingRiders}</span>}
           </NavLink>
           <NavLink to="/admin/settings" className="admin-primary-link">
             <Icon name="settings" size={20} />

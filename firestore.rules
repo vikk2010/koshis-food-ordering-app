@@ -5,15 +5,27 @@ rules_version = '2';
 // - config/*, dishes/*: the menu, restaurant details, charges and coupons. Everyone can read them
 //   (the storefront needs them); only admins can change them.
 // - orders/*: signed-in customers create orders under their own account and read them back;
-//   only admins read every order and change its status.
+//   admins read every order and change its status. A delivery partner (rider) can read an order only
+//   once it's theirs, can only move it to "out for delivery" / "delivered", and shares its live location.
 // - customers/{uid}: a customer's saved addresses; only that customer can read or write them.
 // - admins/{uid}: the admin allowlist, added by hand in the console (document ID = admin's UID).
+// - riders/{uid}: delivery partners. They register themselves (status 'pending'); an admin approves,
+//   disables or deletes them. riderInvites/{email}: riders the admin added by email — they're approved
+//   automatically when they register with that Google account.
+// - deliveryJobs/{orderId}: what approved riders see before accepting an order (no customer details).
+//   The first rider to accept wins; the rules refuse anyone else.
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function isAdmin() {
       return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
+    function riderDoc() { return /databases/$(database)/documents/riders/$(request.auth.uid); }
+    function isApprovedRider() {
+      return signedIn() && exists(riderDoc()) && get(riderDoc()).data.status == 'approved';
+    }
+    function myEmailKey() { return request.auth.token.email.lower(); }
+    function changedOnly(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
 
     match /config/{docId} {
       allow read: if true;
@@ -26,14 +38,43 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
+      // A rider accepting this order: they must also be the one taking its delivery job in the same write.
+      function riderAccepting() {
+        return isApprovedRider()
+          && resource.data.get('riderUid', null) == null
+          && request.resource.data.riderUid == request.auth.uid
+          && changedOnly(['riderUid', 'rider', 'riderAcceptedAt'])
+          && getAfter(/databases/$(database)/documents/deliveryJobs/$(orderId)).data.riderUid == request.auth.uid;
+      }
+      // The assigned rider: picked up (preparing → out) and delivered (out → delivered, recording cash/UPI for COD).
+      function riderProgress() {
+        return isApprovedRider()
+          && resource.data.get('riderUid', null) == request.auth.uid
+          && request.resource.data.riderUid == request.auth.uid
+          && changedOnly(['status', 'statusTimes', 'paymentStatus', 'paidAt', 'collection'])
+          && ((resource.data.status == 'preparing' && request.resource.data.status == 'out')
+            || (resource.data.status == 'out' && request.resource.data.status == 'delivered'))
+          && (request.resource.data.paymentStatus == resource.data.paymentStatus || resource.data.payment == 'cod');
+      }
+
+      // The assigned rider's live position for the customer's map (only while the order is in progress).
+      function riderLocating() {
+        return isApprovedRider()
+          && resource.data.get('riderUid', null) == request.auth.uid
+          && resource.data.status in ['pending', 'preparing', 'out']
+          && changedOnly(['riderLocation']);
+      }
+
       // New orders always start as "waiting for the restaurant" and unpaid; only admins move them on.
       allow create: if signedIn()
         && request.resource.data.customerUid == request.auth.uid
         && request.resource.data.id == orderId
         && request.resource.data.status == 'pending'
         && request.resource.data.paymentStatus == 'pending';
-      allow read: if isAdmin() || (signedIn() && resource.data.customerUid == request.auth.uid);
-      allow update: if isAdmin();
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.customerUid == request.auth.uid)
+        || (signedIn() && resource.data.riderUid == request.auth.uid);
+      allow update: if isAdmin() || riderAccepting() || riderProgress() || riderLocating();
       allow delete: if false;
     }
 
@@ -44,6 +85,41 @@ service cloud.firestore {
     match /admins/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
+    }
+
+    match /riders/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      // Self-registration: 'pending', or 'approved' when the admin added this email first.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.email.lower() == myEmailKey()
+        && request.resource.data.name is string && request.resource.data.name.size() > 1
+        && (request.resource.data.status == 'pending'
+          || (request.resource.data.status == 'approved'
+            && exists(/databases/$(database)/documents/riderInvites/$(myEmailKey()))));
+      // Riders may fix their own contact details; only admins approve, disable or delete.
+      allow update: if isAdmin()
+        || (signedIn() && request.auth.uid == uid && changedOnly(['name', 'phone', 'bikeNumber']));
+      allow delete: if isAdmin();
+    }
+
+    match /riderInvites/{email} {
+      allow read: if isAdmin() || (signedIn() && request.auth.token.email != null && email == myEmailKey());
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin() || (signedIn() && request.auth.token.email != null && email == myEmailKey());
+    }
+
+    match /deliveryJobs/{orderId} {
+      allow read: if isAdmin() || isApprovedRider();
+      allow create, delete: if isAdmin();
+      // Admins change anything; a rider can only claim an open job for themselves (first one wins).
+      allow update: if isAdmin()
+        || (isApprovedRider()
+          && resource.data.status == 'open'
+          && resource.data.riderUid == null
+          && request.resource.data.status == 'taken'
+          && request.resource.data.riderUid == request.auth.uid
+          && changedOnly(['status', 'riderUid', 'riderName', 'takenAt']));
     }
   }
 }

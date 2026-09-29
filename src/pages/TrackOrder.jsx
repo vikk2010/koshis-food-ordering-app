@@ -6,6 +6,7 @@ import { subscribeToOrder } from '../services/orderStore.js'
 import VegIcon from '../components/VegIcon.jsx'
 import Icon from '../components/Icon.jsx'
 import UpiPayment from '../components/UpiPayment.jsx'
+import RiderLiveMap from '../components/RiderLiveMap.jsx'
 import { formatPrice } from '../utils/bill.js'
 import { formatAddress } from '../utils/address.js'
 import { deliveryEstimate, formatTime } from '../utils/delivery.js'
@@ -36,7 +37,7 @@ export default function TrackOrder() {
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 15000)
+    const t = setInterval(() => setNow(Date.now()), 10000)
     return () => clearInterval(t)
   }, [])
 
@@ -147,7 +148,9 @@ export default function TrackOrder() {
               </div>
             ) : (
               <>
-                {stage >= 1 && (
+                {order.rider && !delivered && (restaurant.location || order.address?.location || order.riderLocation) ? (
+                  <RiderLiveMap order={order} restaurant={restaurant} now={now} />
+                ) : stage >= 1 && (
                   <div className="track-map" aria-hidden="true">
                     <span className="map-dot"><Icon name={stage >= 2 ? 'bike' : 'chef'} size={32} /></span>
                     <span className="map-label">
@@ -181,6 +184,19 @@ export default function TrackOrder() {
               </>
             )}
           </div>
+          {order.rider && !cancelled && (
+            <div className="card rider-assigned">
+              <span className="rider-avatar">{order.rider.name?.[0]?.toUpperCase()}</span>
+              <div>
+                <span className="eyebrow">{delivered ? 'Delivered by' : 'Your delivery partner'}</span>
+                <strong>{order.rider.name}</strong>
+                <span className="muted small"><Icon name="bike" size={14} /> {order.rider.bikeNumber}</span>
+              </div>
+              {!delivered && order.rider.phone && (
+                <a className="btn small secondary" href={`tel:+91${order.rider.phone}`}><Icon name="phone" size={15} /> Call</a>
+              )}
+            </div>
+          )}
         </div>
 
         <aside className="checkout-side">

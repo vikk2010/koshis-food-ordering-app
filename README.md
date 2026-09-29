@@ -69,6 +69,28 @@ npm run build    # production build in dist/
     **Out for delivery** → **Mark delivered**. Cash on delivery skips the payment step. Orders can
     also be cancelled. The customer's tracking page updates live and shows "Waiting for the
     restaurant to accept your order" (plus the UPI QR code) until the order is accepted.
+- **Delivery partners (riders)** — stage 1, added Oct 2026:
+  - **Sign-up** at `/rider` (also linked as "Deliver with us" in the footer): sign in with Google, then name,
+    mobile and bike number. New riders wait for approval. Riders you add yourself under **Admin → Riders**
+    (by their Gmail address) are approved automatically when they sign in.
+  - **Admin → Riders**: approve or reject new sign-ups, disable / enable / delete riders, see each rider's
+    deliveries today and in total, what they're delivering now, and the cash they're holding — tap
+    **Received** when they hand it over.
+  - **How an order reaches a rider**: when you tap **Start preparing**, every approved rider gets the order
+    on their screen (with a chime and a notification) showing only the area, distance, amount and payment
+    type. The first rider to tap **Accept delivery** gets it — the database refuses anyone else. Only then do
+    they see the customer's name, phone, address and a Google Maps route.
+  - **Rider steps**: **Picked up from kitchen** (order becomes *Out for delivery*) → **Mark as delivered**. For
+    cash on delivery the rider taps **Collect ₹… & deliver**, which shows your UPI QR code and the amount;
+    then **Received cash** or **Paid by UPI**. The order is marked paid.
+  - **On each admin order page** a **Delivery** card shows who's delivering and when they accepted /
+    picked up / delivered, or "Offered to N riders · waiting X min". You can **assign a rider yourself**,
+    **remove a rider** (the order is offered to everyone again), or **send to riders** for orders accepted
+    earlier. If nobody accepts within 5 minutes you get an alert. The Orders table shows the rider's name or
+    "Finding rider".
+  - **Customers** see their delivery partner's name, bike number and a Call button on the tracking page.
+  - **Alerts need the rider page open** (in the phone's browser, screen on). Alerts on a locked phone need
+    push notifications — stage 2 (Firebase Cloud Messaging on the Blaze plan).
 
 Set a different admin password with a `.env` file: `VITE_ADMIN_PASSWORD=yourpassword`.
 
@@ -106,6 +128,9 @@ admin changes show up live:
 | `orders/{id}` | orders and their status | customer creates, admins update |
 | `customers/{uid}` | a customer's saved addresses | that customer |
 | `admins/{uid}` | admin allowlist | only in the Firebase console |
+| `riders/{uid}` | delivery partners (name, email, mobile, bike number, status) | rider registers; admins approve / disable / delete |
+| `riderInvites/{email}` | riders added by the admin who haven't signed in yet | admins |
+| `deliveryJobs/{orderId}` | what riders see before accepting (no customer details); who took it | admins create; the first rider claims it |
 
 Only the cart, the login session and admin notification preferences stay in the browser.
 
@@ -113,7 +138,8 @@ Only the cart, the login session and admin notification preferences stay in the 
   coupons to Firestore once — the ones saved in that browser by the older version of the app, or
   the defaults. Check Restaurant Details afterwards.
 - **Security rules**: after changing `firestore.rules`, paste it into **Firestore Database → Rules**
-  and click **Publish**. The app needs the current rules to read the menu.
+  and click **Publish**. The app needs the current rules to read the menu. **The rider module needs the
+  rules from October 2026** — without them riders can't register or accept orders.
 - **Customer login**: "Continue with Google", then name + mobile number for delivery. Free and
   unlimited. The mobile number is not OTP-verified.
 - **Admin login** (`/admin/login`): "Sign in with Google". Only Google accounts whose UID has a

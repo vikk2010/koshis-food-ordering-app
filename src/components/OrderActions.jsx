@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { updateOrder } from '../services/orderStore.js'
+import { applyOrderUpdate } from '../services/riderStore.js'
 import { formatPrice } from '../utils/bill.js'
 import { customerName, formatClock } from '../utils/orders.js'
 import { STATUS_LABELS, cancelUpdates, isOpen, isTooFar, isUpi, needsPayment, nextAction, orderStatus, paymentText } from '../utils/orderStatus.js'
@@ -36,7 +36,8 @@ export default function OrderActions({ order, compact = false }) {
     setBusy(true)
     setError('')
     try {
-      await updateOrder(order.id, updates)
+      // Also offers the order to riders when cooking starts, and withdraws the offer on cancel.
+      await applyOrderUpdate(order, updates)
       setConfirmCancel(false)
     } catch (err) {
       setError(err.message)

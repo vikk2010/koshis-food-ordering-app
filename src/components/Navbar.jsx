@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useCart } from '../context/CartContext.jsx'
 import { useUser } from '../context/UserContext.jsx'
 import { useOrders } from '../context/OrderContext.jsx'
@@ -11,6 +11,19 @@ export default function Navbar() {
   const { count } = useCart()
   const { user } = useUser()
   const { lastOrder } = useOrders()
+  const { pathname } = useLocation()
+
+  // The delivery partner app gets a plain header (no menu or cart).
+  if (pathname.startsWith('/rider')) {
+    return (
+      <header className="navbar">
+        <div className="container navbar-inner">
+          <Logo />
+          <span className="rider-badge"><Icon name="bike" size={16} /> Delivery partner</span>
+        </div>
+      </header>
+    )
+  }
 
   return (
     <header className="navbar">

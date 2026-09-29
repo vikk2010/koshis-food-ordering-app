@@ -6,6 +6,7 @@ import Icon from '../../components/Icon.jsx'
 import { formatPrice } from '../../utils/bill.js'
 import { formatAddress } from '../../utils/address.js'
 import OrderActions, { PaymentBadge, StatusBadge } from '../../components/OrderActions.jsx'
+import DeliveryPanel from '../../components/DeliveryPanel.jsx'
 import { STAGES, STATUS_LABELS, isTooFar, orderStatus } from '../../utils/orderStatus.js'
 import { useRestaurant } from '../../context/RestaurantContext.jsx'
 import { mapsLink, mapsSearchLink } from '../../utils/geo.js'
@@ -128,6 +129,8 @@ export default function AdminOrderDetail() {
             </ol>
             <OrderActions order={order} />
           </div>
+
+          <DeliveryPanel order={order} />
 
           <div className="card summary-card">
             <h2>Bill</h2>
