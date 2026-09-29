@@ -26,14 +26,14 @@ export default function DishCard({ dish }) {
           {!dish.available ? (
             <span className="muted small">Currently unavailable</span>
           ) : inCart ? (
-            <div className="qty">
-              <button onClick={() => setQty(dish.id, inCart.qty - 1)} aria-label="Decrease">−</button>
-              <span>{inCart.qty}</span>
-              <button onClick={() => setQty(dish.id, inCart.qty + 1)} aria-label="Increase">+</button>
+            <div className="qty dish-qty">
+              <button onClick={() => setQty(dish.id, inCart.qty - 1)} aria-label={`Remove one ${dish.name}`}>−</button>
+              <span aria-live="polite">{inCart.qty}</span>
+              <button onClick={() => setQty(dish.id, inCart.qty + 1)} aria-label={`Add one more ${dish.name}`}>+</button>
             </div>
           ) : (
-            <button className="btn soft small" onClick={() => addToCart(dish)}>
-              <Icon name="plus" size={16} /> Add
+            <button className="dish-add" onClick={() => addToCart(dish)} aria-label={`Add ${dish.name} to cart`}>
+              <Icon name="plus" size={18} strokeWidth={2.5} /> Add
             </button>
           )}
         </div>

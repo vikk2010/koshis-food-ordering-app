@@ -7,6 +7,7 @@ import Menu from './pages/Menu.jsx'
 import Cart from './pages/Cart.jsx'
 import Login from './pages/Login.jsx'
 import TrackOrder from './pages/TrackOrder.jsx'
+import Account from './pages/Account.jsx'
 import AdminLogin from './pages/admin/AdminLogin.jsx'
 import AdminDashboard from './pages/admin/AdminDashboard.jsx'
 import AdminSettings from './pages/admin/AdminSettings.jsx'
@@ -28,6 +29,7 @@ export default function App() {
           <Route element={<RequireUser />}>
             <Route path="/cart" element={<Cart />} />
             <Route path="/orders/:id" element={<TrackOrder />} />
+            <Route path="/account" element={<Account />} />
           </Route>
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route element={<ProtectedRoute />}>
